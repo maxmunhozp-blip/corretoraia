@@ -227,7 +227,7 @@ export default function Landing() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/cadastro">
+            <Link to="/login">
               <Button
                 variant="outline"
                 className="border-brand text-brand hover:bg-brand-light"
