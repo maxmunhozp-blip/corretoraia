@@ -6,6 +6,105 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+function getLatestUserMessage(messages: { role: string; content: string }[] = []) {
+  const latestUserMessage = [...messages].reverse().find((message) => message.role === "user");
+  return latestUserMessage?.content || "";
+}
+
+function getForcedToolChoice(latestUserMessage: string) {
+  const text = normalizeText(latestUserMessage);
+  const hasPdfIntent = ["download", "baixar", "pdf", "preview", "visualizar", "botao"].some((term) =>
+    text.includes(term)
+  );
+
+  if (!hasPdfIntent) return null;
+
+  if (text.includes("relatorio executivo")) {
+    return { type: "function", function: { name: "gerar_relatorio_executivo" } };
+  }
+
+  return { type: "function", function: { name: "gerar_proposta_pdf" } };
+}
+
+function compactObject(value: Record<string, any>) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== null && entry !== "")
+  );
+}
+
+function parseCurrency(value?: string) {
+  if (!value) return undefined;
+  const normalized = value.replace(/\./g, "").replace(/,/g, ".").replace(/[^\d.]/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function extractProposalContext(messages: { role: string; content: string }[] = []) {
+  const lines = messages
+    .flatMap((message) => message.content.replace(/\*\*/g, "").split("
+"))
+    .map((line) => line.replace(/^[-•]\s*/, "").trim())
+    .filter((line) => line && !line.startsWith("```") && !line.startsWith("{"));
+
+  const getLineValue = (prefixes: string[]) => {
+    const matched = lines.filter((line) =>
+      prefixes.some((prefix) => normalizeText(line).startsWith(normalizeText(prefix)))
+    );
+    const lastLine = matched[matched.length - 1];
+    if (!lastLine || !lastLine.includes(":")) return undefined;
+    return lastLine.split(":").slice(1).join(":").trim();
+  };
+
+  const subtitle = getLineValue(["Subtítulo"]);
+  const subtitleParts = subtitle ? subtitle.split(/\s+[—-]\s+/) : [];
+  const subtitleTail = subtitleParts[1] || "";
+  const subtitlePlanParts = subtitleTail
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const clienteNome = getLineValue(["Empresa", "Cliente"]) || subtitleParts[0]?.trim();
+  const vidasText = getLineValue(["Vidas", "Vidas simuladas"]);
+  const vidas = vidasText ? Number((vidasText.match(/\d+/) || [])[0]) : undefined;
+  const valorEstimado = parseCurrency(
+    getLineValue(["Proposta Bradesco (simulação)", "Proposta Bradesco", "Valor mensal proposto (total)"])
+  );
+  const valorAtual = parseCurrency(getLineValue(["Custo atual (SulAmérica)", "Custo atual"]));
+  const acomodacao = getLineValue(["Acomodação"]);
+  const odontologico = getLineValue(["Odontológico"]);
+  const compraCarencia = getLineValue(["Compra de carência"]);
+
+  const observacoes = [
+    compraCarencia,
+    acomodacao ? `Acomodação: ${acomodacao}` : null,
+    odontologico ? `Odontológico: ${odontologico}` : null,
+  ].filter(Boolean).join(" • ");
+
+  return compactObject({
+    __pdf_type: "proposta",
+    cliente_nome: clienteNome,
+    empresa: clienteNome,
+    vidas,
+    valor_estimado: valorEstimado,
+    valor_atual: valorAtual,
+    operadora: getLineValue(["Operadora"]) || subtitlePlanParts[0],
+    produto: getLineValue(["Produto"]) || subtitlePlanParts[1],
+    acomodacao,
+    odontologico,
+    compra_carencia: compraCarencia,
+    observacoes: observacoes || undefined,
+    status: "simulada",
+    created_at: new Date().toISOString(),
+  });
+}
+
 const tools = [
   {
     type: "function",
@@ -177,7 +276,7 @@ const tools = [
 ];
 
 // Tool implementations
-async function executeTool(name: string, args: any, supabase: any): Promise<string> {
+async function executeTool(name: string, args: any, supabase: any, messages: { role: string; content: string }[] = []): Promise<string> {
   try {
     switch (name) {
       case "buscar_cliente": {
@@ -496,33 +595,75 @@ async function executeTool(name: string, args: any, supabase: any): Promise<stri
       }
 
       case "gerar_proposta_pdf": {
-        const { cliente_nome, proposta_id } = args;
-        let q = supabase
-          .from("propostas")
-          .select("*, operadoras(nome), profiles!propostas_responsavel_id_fkey(nome)")
-          .order("created_at", { ascending: false })
-          .limit(1);
+        const conversationProposal = extractProposalContext(messages);
+        const explicitArgs = compactObject({
+          cliente_nome: args.cliente_nome,
+          empresa: args.empresa,
+          vidas: args.vidas,
+          valor_estimado: args.valor_estimado,
+          valor_atual: args.valor_atual,
+          operadora: args.operadora,
+          produto: args.produto,
+          acomodacao: args.acomodacao,
+          odontologico: args.odontologico,
+          compra_carencia: args.compra_carencia,
+          status: args.status,
+          responsavel: args.responsavel,
+          observacoes: args.observacoes,
+          created_at: args.created_at,
+        });
 
-        if (proposta_id) q = q.eq("id", proposta_id);
-        else if (cliente_nome) q = q.ilike("cliente_nome", `%${cliente_nome}%`);
+        const lookupName = args.cliente_nome || args.empresa || conversationProposal.cliente_nome || conversationProposal.empresa;
+        let data = null;
 
-        const { data } = await q;
-        if (!data?.length) return JSON.stringify({ erro: "Proposta não encontrada" });
+        if (args.proposta_id || lookupName) {
+          let q = supabase
+            .from("propostas")
+            .select("*, operadoras(nome), profiles!propostas_responsavel_id_fkey(nome)")
+            .order("created_at", { ascending: false })
+            .limit(1);
 
-        const p = data[0];
-        const propostaData = {
+          if (args.proposta_id) q = q.eq("id", args.proposta_id);
+          else if (lookupName) q = q.or(`cliente_nome.ilike.%${lookupName}%,empresa.ilike.%${lookupName}%`);
+
+          const response = await q;
+          data = response.data;
+        }
+
+        if (data?.length) {
+          const p = data[0];
+          const propostaData = {
+            __pdf_type: "proposta",
+            ...conversationProposal,
+            cliente_nome: p.cliente_nome,
+            empresa: p.empresa,
+            vidas: p.vidas,
+            valor_estimado: p.valor_estimado,
+            operadora: p.operadoras?.nome,
+            status: p.status,
+            responsavel: p.profiles?.nome,
+            observacoes: p.observacoes,
+            created_at: p.created_at,
+            ...explicitArgs,
+          };
+          return JSON.stringify(propostaData);
+        }
+
+        const contextualProposal = {
           __pdf_type: "proposta",
-          cliente_nome: p.cliente_nome,
-          empresa: p.empresa,
-          vidas: p.vidas,
-          valor_estimado: p.valor_estimado,
-          operadora: p.operadoras?.nome,
-          status: p.status,
-          responsavel: p.profiles?.nome,
-          observacoes: p.observacoes,
-          created_at: p.created_at,
+          ...conversationProposal,
+          ...explicitArgs,
+          cliente_nome: explicitArgs.cliente_nome || conversationProposal.cliente_nome || explicitArgs.empresa || conversationProposal.empresa,
+          empresa: explicitArgs.empresa || conversationProposal.empresa || explicitArgs.cliente_nome || conversationProposal.cliente_nome,
+          status: explicitArgs.status || conversationProposal.status || "simulada",
+          created_at: explicitArgs.created_at || conversationProposal.created_at || new Date().toISOString(),
         };
-        return JSON.stringify(propostaData);
+
+        if (!contextualProposal.cliente_nome) {
+          return JSON.stringify({ erro: "Proposta não encontrada e não consegui extrair dados suficientes da conversa para gerar o PDF" });
+        }
+
+        return JSON.stringify(contextualProposal);
       }
 
       case "gerar_relatorio_executivo": {
@@ -710,6 +851,8 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
       { role: "system", content: systemPrompt },
       ...messages,
     ];
+    const latestUserMessage = getLatestUserMessage(messages);
+    const forcedToolChoice = getForcedToolChoice(latestUserMessage);
 
     // Step 1: Non-streaming call to determine if tools are needed
     const toolResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -723,6 +866,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
         messages: initialMessages,
         tools,
         stream: false,
+        ...(forcedToolChoice ? { tool_choice: forcedToolChoice } : {}),
       }),
     });
 
@@ -778,7 +922,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
     ];
 
     // If the model already gave a direct answer (no tools), include context hint
-    if (!toolMessage?.tool_calls?.length && toolMessage?.content) {
+    if (!toolResultsContext && !toolMessage?.tool_calls?.length && toolMessage?.content) {
       // Direct answer — stream it as SSE
       const content = toolMessage.content;
       const encoder = new TextEncoder();
