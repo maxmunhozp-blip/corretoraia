@@ -184,12 +184,79 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
     }
   };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const readAllEntries = async (dirEntry: any, basePath: string): Promise<File[]> => {
+    return new Promise((resolve) => {
+      const reader = dirEntry.createReader();
+      const allFiles: File[] = [];
+
+      const readBatch = () => {
+        reader.readEntries(async (entries: any[]) => {
+          if (entries.length === 0) {
+            resolve(allFiles);
+            return;
+          }
+
+          for (const entry of entries) {
+            if (entry.isFile) {
+              const file: File = await new Promise((res) => entry.file((f: File) => {
+                // Attach relative path manually
+                Object.defineProperty(f, "webkitRelativePath", {
+                  value: `${basePath}/${entry.name}`,
+                  writable: false,
+                });
+                res(f);
+              }));
+              allFiles.push(file);
+            } else if (entry.isDirectory) {
+              const subFiles = await readAllEntries(entry, `${basePath}/${entry.name}`);
+              allFiles.push(...subFiles);
+            }
+          }
+
+          // Chrome returns entries in batches of 100, so keep reading
+          readBatch();
+        });
+      };
+      readBatch();
+    });
+  };
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      scanAndCategorize(e.dataTransfer.files);
+
+    const items = e.dataTransfer.items;
+    if (!items || items.length === 0) return;
+
+    const allFiles: File[] = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const entry = (items[i] as any).webkitGetAsEntry?.();
+      if (!entry) {
+        // Fallback: use file directly
+        const file = items[i].getAsFile();
+        if (file) allFiles.push(file);
+        continue;
+      }
+
+      if (entry.isDirectory) {
+        const dirFiles = await readAllEntries(entry, entry.name);
+        allFiles.push(...dirFiles);
+      } else if (entry.isFile) {
+        const file: File = await new Promise((res) => entry.file((f: File) => res(f)));
+        allFiles.push(file);
+      }
     }
+
+    if (allFiles.length === 0) {
+      toast.error("Nenhum arquivo encontrado na pasta");
+      return;
+    }
+
+    // Create a fake FileList-like structure
+    const dt = new DataTransfer();
+    allFiles.forEach((f) => dt.items.add(f));
+    scanAndCategorize(dt.files);
   }, []);
 
   const removeFile = (index: number) => {
