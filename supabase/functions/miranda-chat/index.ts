@@ -132,6 +132,33 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "gerar_proposta_pdf",
+      description: "Busca dados de uma proposta e retorna dados estruturados para gerar PDF da proposta. Use quando o usuário pedir para gerar, criar ou baixar PDF de uma proposta específica.",
+      parameters: {
+        type: "object",
+        properties: {
+          cliente_nome: { type: "string", description: "Nome do cliente da proposta" },
+          proposta_id: { type: "string", description: "ID da proposta (se souber)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "gerar_relatorio_executivo",
+      description: "Coleta métricas, propostas, alertas e ranking para gerar um relatório executivo em PDF. Use quando o usuário pedir relatório executivo, relatório do dia/semana/mês, ou relatório geral.",
+      parameters: {
+        type: "object",
+        properties: {
+          periodo: { type: "string", description: "Período: mes_atual, semana, trimestre, ano" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "criar_alerta",
       description: "Registra um novo alerta no sistema",
       parameters: {
