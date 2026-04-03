@@ -377,6 +377,87 @@ export function gerarPropostaPdf(dados: DadosProposta): Blob {
     styles: { cellPadding: 3.2 },
   });
 
+  // ── PAGE 4: Coberturas + Assinatura ──
+  doc.addPage();
+  drawInnerHeader(doc, "Coberturas e assinatura", dados);
+  y = 38;
+
+  drawSectionTitle(doc, "Tabela de Coberturas", y);
+  y += 10;
+
+  const coberturas = [
+    ["Consultas médicas", "Rede referenciada", "Ilimitado"],
+    ["Exames laboratoriais", "Rede referenciada", "Ilimitado"],
+    ["Exames de imagem", "Rede referenciada", "Conforme rol ANS"],
+    ["Internações clínicas", safeText(dados.acomodacao) !== "—" ? dados.acomodacao! : "Apartamento", "Ilimitado"],
+    ["Internações cirúrgicas", safeText(dados.acomodacao) !== "—" ? dados.acomodacao! : "Apartamento", "Ilimitado"],
+    ["Pronto-socorro / Urgência", "24h", "Ilimitado"],
+    ["Terapias (fisio, fono, TO)", "Rede referenciada", "Conforme rol ANS"],
+    ["Saúde mental", "Rede referenciada", "Conforme rol ANS"],
+    ["Odontológico", safeText(dados.odontologico) !== "—" ? "Incluso" : "Não incluso", safeText(dados.odontologico) !== "—" ? "Conforme contrato" : "—"],
+    ["Telemedicina", "Plataforma digital", "Ilimitado"],
+  ];
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: M, right: M },
+    head: [["Cobertura", "Tipo de acesso", "Limite"]],
+    body: coberturas,
+    headStyles: { fillColor: MARSALA, textColor: WHITE, fontStyle: "bold", fontSize: 8.5 },
+    bodyStyles: { textColor: TEXT_BODY, fontSize: 8.5 },
+    alternateRowStyles: { fillColor: SAND },
+    styles: { cellPadding: 3.2 },
+    columnStyles: {
+      0: { cellWidth: 60 },
+      1: { cellWidth: 56 },
+      2: { cellWidth: CW - 116 },
+    },
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  doc.setTextColor(...TEXT_MUTED);
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7.5);
+  const disclaimer = doc.splitTextToSize(
+    "* Coberturas ilustrativas baseadas no rol mínimo da ANS e nas condições informadas. Consulte o contrato final da operadora para detalhes específicos de rede, carências e limites.",
+    CW,
+  );
+  doc.text(disclaimer, M, y);
+  y += disclaimer.length * 4 + 16;
+
+  // ── Assinatura Comercial ──
+  doc.setDrawColor(...MARSALA);
+  doc.setLineWidth(0.4);
+  const sigLineW = 72;
+  const sigLeftX = M + 10;
+  const sigRightX = PAGE_W - M - sigLineW - 10;
+
+  doc.line(sigLeftX, y, sigLeftX + sigLineW, y);
+  doc.line(sigRightX, y, sigRightX + sigLineW, y);
+
+  doc.setTextColor(...TEXT_DARK);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text(safeText(dados.responsavel), sigLeftX + sigLineW / 2, y + 5, { align: "center" });
+  doc.text(safeText(dados.empresa || dados.cliente_nome), sigRightX + sigLineW / 2, y + 5, { align: "center" });
+
+  doc.setTextColor(...TEXT_MUTED);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.text("Consultor comercial", sigLeftX + sigLineW / 2, y + 10, { align: "center" });
+  doc.text("Cliente / Representante legal", sigRightX + sigLineW / 2, y + 10, { align: "center" });
+
+  y += 20;
+  doc.setFillColor(...SAND);
+  doc.roundedRect(M, y, CW, 22, 4, 4, "F");
+  doc.setTextColor(...TEXT_BODY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text("Local: ________________________________", M + 6, y + 8);
+  doc.text(`Data: ${fmtDate(undefined, "dd/MM/yyyy")}`, M + 6, y + 16);
+  doc.text("Válida por 15 dias a partir da emissão.", PAGE_W - M - 6, y + 16, { align: "right" });
+
   for (let page = 1; page <= doc.getNumberOfPages(); page += 1) {
     doc.setPage(page);
     drawFooter(doc, page === 1);
