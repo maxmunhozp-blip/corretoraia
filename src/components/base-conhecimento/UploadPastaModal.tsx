@@ -2,7 +2,6 @@ import { useState, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
   FolderOpen, FileText, FileSpreadsheet, Image, File,
@@ -122,7 +121,6 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
     setCategorizing(true);
     setStep("review");
 
-    // Call AI to categorize
     try {
       const arquivos = scanned.map((f) => ({
         nome: f.file.name,
@@ -131,7 +129,6 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
         tamanho: f.file.size,
       }));
 
-      // Process in batches of 30 to avoid token limits
       const batchSize = 30;
       const allClassifications: any[] = [];
 
@@ -143,7 +140,6 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
 
         if (error) throw new Error(error.message || "Erro ao categorizar");
         if (data?.classificacoes) {
-          // Adjust indices for batched processing
           const adjusted = data.classificacoes.map((c: any) => ({
             ...c,
             indice: c.indice + batchStart,
@@ -152,7 +148,6 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
         }
       }
 
-      // Apply classifications
       setFiles((prev) =>
         prev.map((f, i) => {
           const classification = allClassifications.find((c: any) => c.indice === i);
@@ -169,7 +164,6 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
       toast.success(`${scanned.length} arquivos categorizados pela IA`);
     } catch (err: any) {
       console.error("Categorization error:", err);
-      // Fallback: set all as "outro" 
       setFiles((prev) =>
         prev.map((f) => ({
           ...f,
@@ -273,7 +267,6 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
   const doneCount = files.filter((f) => f.status === "done").length;
   const errorCount = files.filter((f) => f.status === "error").length;
 
-  // Group by category for summary
   const byCategoria = files.reduce<Record<string, number>>((acc, f) => {
     if (f.categoria) {
       acc[f.categoria] = (acc[f.categoria] || 0) + 1;
@@ -290,9 +283,9 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v && !uploading && !categorizing) { reset(); } onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="sm:max-w-2xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogHeader className="shrink-0 border-b border-border px-6 py-5">
+          <DialogTitle className="flex items-center gap-2 pr-10">
             <FolderOpen className="h-5 w-5 text-brand" />
             Upload Inteligente de Pasta
             {categorizing && (
@@ -303,14 +296,14 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 flex flex-col gap-4">
+        <div className="flex-1 min-h-0 overflow-hidden px-6 py-4">
           {step === "select" ? (
             <div
               onDrop={handleDrop}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onClick={() => folderInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+              className={`flex h-full min-h-0 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center transition-colors ${
                 dragOver ? "border-brand bg-brand-light" : "border-border hover:border-muted-foreground"
               }`}
             >
@@ -337,10 +330,9 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
               />
             </div>
           ) : (
-            <>
-              {/* AI Classification Summary */}
+            <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
               {!categorizing && Object.keys(byCategoria).length > 0 && (
-                <div className="rounded-lg border border-brand/20 bg-brand-light/50 p-3 space-y-2">
+                <div className="shrink-0 rounded-lg border border-brand/20 bg-brand-light/50 p-3 space-y-2">
                   <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                     <Sparkles className="h-3.5 w-3.5 text-brand" />
                     Classificação da IA
@@ -369,8 +361,7 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
                 </div>
               )}
 
-              {/* Stats */}
-              <div className="flex flex-wrap gap-2 text-xs">
+              <div className="shrink-0 flex flex-wrap gap-2 text-xs">
                 <div className="flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 font-medium text-foreground">
                   <File className="h-3.5 w-3.5" />
                   {files.length} arquivos
@@ -389,8 +380,7 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
                 )}
               </div>
 
-              {/* File list */}
-              <ScrollArea className="flex-1 min-h-0 border border-border rounded-lg">
+              <div className="flex-1 min-h-0 overflow-auto rounded-lg border border-border">
                 <div className="divide-y divide-border">
                   {files.map((f, i) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
@@ -409,13 +399,13 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
                         <p className="text-xs font-medium text-foreground truncate">
                           {f.tituloSugerido || f.file.name}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground">{formatSize(f.file.size)}</span>
-                          <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{f.relativePath}</span>
+                        <div className="flex items-center gap-2 mt-0.5 min-w-0">
+                          <span className="text-[10px] text-muted-foreground shrink-0">{formatSize(f.file.size)}</span>
+                          <span className="text-[10px] text-muted-foreground truncate">{f.relativePath}</span>
                         </div>
-                        {f.error && <p className="text-[10px] text-red-500 mt-0.5">{f.error}</p>}
+                        {f.error && <p className="text-[10px] text-red-500 mt-0.5 break-all">{f.error}</p>}
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0 pl-2">
                         {f.categoria && f.status !== "categorizing" && (
                           <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium ${CATEGORIA_COLORS[f.categoria] || CATEGORIA_COLORS.outro}`}>
                             {CATEGORIA_LABELS[f.categoria] || f.categoria}
@@ -438,14 +428,14 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
 
-              {uploading && <Progress value={progress} className="h-2 [&>div]:bg-brand" />}
-            </>
+              {uploading && <Progress value={progress} className="shrink-0 h-2 [&>div]:bg-brand" />}
+            </div>
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t border-border px-6 py-4">
           <Button
             variant="ghost"
             onClick={() => { if (!uploading && !categorizing) { onOpenChange(false); reset(); } }}
