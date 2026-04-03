@@ -93,7 +93,7 @@ export default function UsuariosCorretora() {
 
   const maxUsuarios = corretora?.max_usuarios ?? 3;
   const ativos = usuarios.filter((u: any) => u.ativo).length;
-  const limiteAtingido = maxUsuarios > 0 && ativos >= maxUsuarios;
+  const limiteAtingido = !isMaster && maxUsuarios > 0 && ativos >= maxUsuarios;
 
   const convidarMutation = useMutation({
     mutationFn: async () => {
