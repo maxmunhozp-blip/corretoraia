@@ -40,20 +40,63 @@ interface ChatMessage {
 }
 
 function ActionIndicator({ action }: { action: string }) {
-  const labels: Record<string, string> = {
-    buscar_cliente: "Buscando dados do cliente...",
-    buscar_propostas: "Buscando propostas...",
-    buscar_alertas: "Verificando alertas...",
-    buscar_conhecimento: "Pesquisando base de conhecimento...",
-    buscar_metricas: "Calculando métricas...",
-    buscar_ranking: "Analisando ranking...",
-    gerando_comparativo: "Analisando PDF e extraindo dados...",
-    gerando_pdf: "Gerando relatório PDF profissional...",
+  const labels: Record<string, string[]> = {
+    buscar_cliente: [
+      "Vasculhando o histórico do cliente...",
+      "Mergulhando nos dados do cliente...",
+      "Investigando o perfil do cliente...",
+    ],
+    buscar_propostas: [
+      "Garimpando propostas no sistema...",
+      "Rastreando o pipeline comercial...",
+      "Cruzando dados das propostas...",
+    ],
+    buscar_alertas: [
+      "Escaneando o radar de alertas...",
+      "Passando um pente fino nos alertas...",
+      "Verificando o que precisa de atenção...",
+    ],
+    buscar_conhecimento: [
+      "Consultando a biblioteca de operadoras...",
+      "Decifrando as regras do jogo...",
+      "Folheando manuais e tabelas...",
+    ],
+    buscar_metricas: [
+      "Cozinhando os números...",
+      "Montando o painel de controle...",
+      "Destilando os KPIs da operação...",
+    ],
+    buscar_ranking: [
+      "Preparando o pódio dos vendedores...",
+      "Analisando quem está brilhando...",
+      "Compilando a corrida de vendas...",
+    ],
+    gerando_comparativo: [
+      "Dissecando o PDF página por página...",
+      "Extraindo cada detalhe do comparativo...",
+      "Transformando dados brutos em inteligência...",
+    ],
+    gerar_proposta_pdf: [
+      "Preparando o documento com carinho...",
+      "Formatando a proposta sob medida...",
+      "Dando os últimos retoques no PDF...",
+    ],
+    gerar_relatorio_executivo: [
+      "Construindo a visão executiva...",
+      "Orquestrando métricas e insights...",
+      "Compilando o panorama completo...",
+    ],
   };
+
+  const options = labels[action];
+  const label = options
+    ? options[Math.floor(Math.random() * options.length)]
+    : "Trabalhando nisso...";
+
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse px-3 py-2 rounded-lg bg-surface">
       <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-      <span>{labels[action] || "Processando..."}</span>
+      <span>{label}</span>
     </div>
   );
 }

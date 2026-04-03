@@ -40,18 +40,42 @@ const quickActions = [
 
 /* ── Action indicator ── */
 function ActionIndicator({ action }: { action: string }) {
-  const labelMap: Record<string, string> = {
-    buscar_cliente: "Buscando dados do cliente...",
-    buscar_propostas: "Buscando propostas...",
-    buscar_alertas: "Verificando alertas...",
-    buscar_conhecimento: "Pesquisando base de conhecimento...",
-    buscar_metricas: "Calculando métricas...",
-    buscar_ranking: "Analisando ranking...",
+  const labelMap: Record<string, string[]> = {
+    buscar_cliente: [
+      "Vasculhando o histórico do cliente...",
+      "Mergulhando nos dados do cliente...",
+    ],
+    buscar_propostas: [
+      "Garimpando propostas no sistema...",
+      "Rastreando o pipeline comercial...",
+    ],
+    buscar_alertas: [
+      "Escaneando o radar de alertas...",
+      "Passando um pente fino nos alertas...",
+    ],
+    buscar_conhecimento: [
+      "Consultando a biblioteca de operadoras...",
+      "Folheando manuais e tabelas...",
+    ],
+    buscar_metricas: [
+      "Cozinhando os números...",
+      "Destilando os KPIs da operação...",
+    ],
+    buscar_ranking: [
+      "Preparando o pódio dos vendedores...",
+      "Compilando a corrida de vendas...",
+    ],
   };
+
+  const options = labelMap[action];
+  const label = options
+    ? options[Math.floor(Math.random() * options.length)]
+    : "Trabalhando nisso...";
+
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground animate-fade-in px-2 py-1.5 rounded-md bg-muted/50">
       <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-      <span>{labelMap[action] || "Processando..."}</span>
+      <span>{label}</span>
     </div>
   );
 }
