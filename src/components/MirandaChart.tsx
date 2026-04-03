@@ -167,6 +167,8 @@ export function parseMessageWithCharts(content: string): MessageSegment[] {
         segments.push({ type: "generate_pdf", data: parsed as GeneratePdfData });
       } else if (blockType === "pesquisa_cliente" && parsed.nome) {
         segments.push({ type: "pesquisa_cliente", data: parsed as PesquisaClienteData });
+      } else if (blockType === "proposta_criada" && parsed.slug) {
+        segments.push({ type: "proposta_criada", data: parsed as PropostaCriadaData });
       } else {
         segments.push({ type: "text", content: match[0] });
       }
