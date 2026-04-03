@@ -424,6 +424,7 @@ function drawRedeCredenciadaPage(doc: jsPDF, data: PropostaCompleta) {
 
 function drawProximosPassosPage(doc: jsPDF, data: PropostaCompleta) {
   const pers = data.personalizacao;
+  doc.addPage();
   drawHeader(doc, data.corretora);
   let y = drawSectionTitle(doc, "Próximos passos", 26);
 
