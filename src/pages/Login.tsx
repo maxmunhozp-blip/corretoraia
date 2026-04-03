@@ -24,6 +24,28 @@ export default function Login() {
       setError("Email ou senha incorretos. Tente novamente.");
       setLoading(false);
     } else {
+      // Check if admin_corretora needs onboarding
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, corretora_id")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.role === "admin_corretora" && profile.corretora_id) {
+          const { data: corretora } = await supabase
+            .from("corretoras")
+            .select("onboarding_completo")
+            .eq("id", profile.corretora_id)
+            .single();
+
+          if (corretora && !corretora.onboarding_completo) {
+            navigate("/onboarding");
+            return;
+          }
+        }
+      }
       navigate("/dashboard");
     }
   };
