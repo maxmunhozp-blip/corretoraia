@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageWrapper } from "@/components/PageWrapper";
-import { Trophy, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Users, Monitor } from "lucide-react";
 import { useCountUp } from "@/hooks/useCountUp";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -114,19 +115,29 @@ function TopCard({ v, index }: { v: RankingEntry; index: number }) {
 export default function Ranking() {
   const [periodo, setPeriodo] = useState("mes");
   const { data: ranking, isLoading } = useRanking(periodo);
+  const navigate = useNavigate();
 
   return (
     <PageWrapper title="">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Ranking de Vendedores</h1>
-        <Select value={periodo} onValueChange={setPeriodo}>
-          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="mes">Este mês</SelectItem>
-            <SelectItem value="trimestre">Este trimestre</SelectItem>
-            <SelectItem value="ano">Este ano</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate("/ranking/tv")}
+            className="flex items-center gap-2 rounded-lg border border-brand/30 bg-brand-light px-3 py-2 text-xs font-medium text-brand hover:bg-brand/10 transition-colors"
+          >
+            <Monitor className="h-4 w-4" />
+            Modo TV
+          </button>
+          <Select value={periodo} onValueChange={setPeriodo}>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mes">Este mês</SelectItem>
+              <SelectItem value="trimestre">Este trimestre</SelectItem>
+              <SelectItem value="ano">Este ano</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {isLoading ? (

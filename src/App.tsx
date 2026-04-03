@@ -19,6 +19,7 @@ import Desenvolvimento from "./pages/Desenvolvimento";
 import Configuracoes from "./pages/Configuracoes";
 import Gestao from "./pages/Gestao";
 import MirandaPage from "./pages/MirandaPage";
+import RankingTV from "./pages/RankingTV";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/gestao" element={<Gestao />} />
               <Route path="/miranda" element={<MirandaPage />} />
             </Route>
+            <Route path="/ranking/tv" element={<ProtectedRoute><RankingTV /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
