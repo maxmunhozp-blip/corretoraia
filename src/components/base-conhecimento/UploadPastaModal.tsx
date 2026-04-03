@@ -1,13 +1,15 @@
 import { useState, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FolderOpen, FileText, FileSpreadsheet, Image, File, CheckCircle2, XCircle, Loader2, Upload } from "lucide-react";
-import { useOperadoras } from "@/hooks/usePropostas";
+import { Badge } from "@/components/ui/badge";
+import {
+  FolderOpen, FileText, FileSpreadsheet, Image, File,
+  CheckCircle2, XCircle, Loader2, Upload, Sparkles, Tag,
+} from "lucide-react";
 import { useCreateConhecimento, useUploadConhecimento, useProcessarConhecimento } from "@/hooks/useBaseConhecimento";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Props {
@@ -15,22 +17,43 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-const categorias = [
-  { value: "regras_comerciais", label: "Regras Comerciais" },
-  { value: "tabela_preco", label: "Tabela de Preço" },
-  { value: "rede_credenciada", label: "Rede Credenciada" },
-  { value: "manual", label: "Manual" },
-  { value: "outro", label: "Outro" },
-];
-
 const ACCEPTED_EXTENSIONS = ["pdf", "docx", "xlsx", "xls", "png", "jpg", "jpeg", "csv", "txt", "doc"];
+
+const CATEGORIA_LABELS: Record<string, string> = {
+  regras_comerciais: "Regras Comerciais",
+  tabela_preco: "Tabela de Preço",
+  rede_credenciada: "Rede Credenciada",
+  manual: "Manual",
+  contrato: "Contrato",
+  treinamento: "Treinamento",
+  comunicado: "Comunicado",
+  formulario: "Formulário",
+  relatorio: "Relatório",
+  outro: "Outro",
+};
+
+const CATEGORIA_COLORS: Record<string, string> = {
+  regras_comerciais: "bg-blue-100 text-blue-800",
+  tabela_preco: "bg-green-100 text-green-800",
+  rede_credenciada: "bg-purple-100 text-purple-800",
+  manual: "bg-amber-100 text-amber-800",
+  contrato: "bg-red-100 text-red-800",
+  treinamento: "bg-cyan-100 text-cyan-800",
+  comunicado: "bg-orange-100 text-orange-800",
+  formulario: "bg-indigo-100 text-indigo-800",
+  relatorio: "bg-emerald-100 text-emerald-800",
+  outro: "bg-muted text-muted-foreground",
+};
 
 interface ScannedFile {
   file: File;
   relativePath: string;
   type: string;
-  status: "pending" | "uploading" | "done" | "error";
+  status: "pending" | "categorizing" | "categorized" | "uploading" | "done" | "error";
   error?: string;
+  categoria?: string;
+  operadora?: string;
+  tituloSugerido?: string;
 }
 
 function getFileType(name: string): string {
@@ -61,27 +84,24 @@ function formatSize(bytes: number): string {
 
 export function UploadPastaModal({ open, onOpenChange }: Props) {
   const [files, setFiles] = useState<ScannedFile[]>([]);
-  const [operadoraId, setOperadoraId] = useState("");
-  const [categoria, setCategoria] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [categorizing, setCategorizing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const [step, setStep] = useState<"select" | "review" | "uploading">("select");
   const folderInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: operadoras } = useOperadoras();
   const createDoc = useCreateConhecimento();
   const uploadFile = useUploadConhecimento();
   const processar = useProcessarConhecimento();
 
-  const scanFiles = (fileList: FileList) => {
+  const scanAndCategorize = async (fileList: FileList) => {
     const scanned: ScannedFile[] = [];
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
       const ext = file.name.split(".").pop()?.toLowerCase() || "";
-      // Skip hidden files and unsupported types
       if (file.name.startsWith(".")) continue;
       if (!ACCEPTED_EXTENSIONS.includes(ext)) continue;
-      // Skip very large files (>50MB)
       if (file.size > 50 * 1024 * 1024) continue;
 
       const relativePath = (file as any).webkitRelativePath || file.name;
@@ -89,15 +109,84 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
         file,
         relativePath,
         type: getFileType(file.name),
-        status: "pending",
+        status: "categorizing",
       });
     }
+
+    if (scanned.length === 0) {
+      toast.error("Nenhum arquivo compatível encontrado na pasta");
+      return;
+    }
+
     setFiles(scanned);
+    setCategorizing(true);
+    setStep("review");
+
+    // Call AI to categorize
+    try {
+      const arquivos = scanned.map((f) => ({
+        nome: f.file.name,
+        caminho: f.relativePath,
+        tipo: f.type,
+        tamanho: f.file.size,
+      }));
+
+      // Process in batches of 30 to avoid token limits
+      const batchSize = 30;
+      const allClassifications: any[] = [];
+
+      for (let batchStart = 0; batchStart < arquivos.length; batchStart += batchSize) {
+        const batch = arquivos.slice(batchStart, batchStart + batchSize);
+        const { data, error } = await supabase.functions.invoke("categorizar-documentos", {
+          body: { arquivos: batch },
+        });
+
+        if (error) throw new Error(error.message || "Erro ao categorizar");
+        if (data?.classificacoes) {
+          // Adjust indices for batched processing
+          const adjusted = data.classificacoes.map((c: any) => ({
+            ...c,
+            indice: c.indice + batchStart,
+          }));
+          allClassifications.push(...adjusted);
+        }
+      }
+
+      // Apply classifications
+      setFiles((prev) =>
+        prev.map((f, i) => {
+          const classification = allClassifications.find((c: any) => c.indice === i);
+          return {
+            ...f,
+            status: "categorized" as const,
+            categoria: classification?.categoria || "outro",
+            operadora: classification?.operadora_detectada || "",
+            tituloSugerido: classification?.titulo_sugerido || f.file.name.replace(/\.[^/.]+$/, ""),
+          };
+        })
+      );
+
+      toast.success(`${scanned.length} arquivos categorizados pela IA`);
+    } catch (err: any) {
+      console.error("Categorization error:", err);
+      // Fallback: set all as "outro" 
+      setFiles((prev) =>
+        prev.map((f) => ({
+          ...f,
+          status: "categorized" as const,
+          categoria: "outro",
+          tituloSugerido: f.file.name.replace(/\.[^/.]+$/, ""),
+        }))
+      );
+      toast.error("Erro ao categorizar via IA. Categoria padrão aplicada.");
+    } finally {
+      setCategorizing(false);
+    }
   };
 
   const handleFolderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      scanFiles(e.target.files);
+      scanAndCategorize(e.target.files);
     }
   };
 
@@ -105,7 +194,7 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
     e.preventDefault();
     setDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      scanFiles(e.dataTransfer.files);
+      scanAndCategorize(e.dataTransfer.files);
     }
   }, []);
 
@@ -115,15 +204,17 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
 
   const reset = () => {
     setFiles([]);
-    setOperadoraId("");
-    setCategoria("");
     setProgress(0);
+    setStep("select");
+    setCategorizing(false);
     if (folderInputRef.current) folderInputRef.current.value = "";
   };
 
   const handleUploadAll = async () => {
-    if (files.length === 0) return;
+    const toUpload = files.filter((f) => f.status === "categorized");
+    if (toUpload.length === 0) return;
     setUploading(true);
+    setStep("uploading");
     setProgress(0);
 
     let completed = 0;
@@ -131,6 +222,8 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
 
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
+      if (f.status !== "categorized") continue;
+
       setFiles((prev) =>
         prev.map((item, idx) => (idx === i ? { ...item, status: "uploading" } : item))
       );
@@ -139,18 +232,15 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
         const path = `pasta/${Date.now()}_${f.file.name}`;
         const publicUrl = await uploadFile.mutateAsync({ file: f.file, path });
 
-        const titulo = f.file.name.replace(/\.[^/.]+$/, "");
         const doc = await createDoc.mutateAsync({
-          titulo,
+          titulo: f.tituloSugerido || f.file.name.replace(/\.[^/.]+$/, ""),
           tipo: f.type,
-          categoria: categoria || "outro",
-          operadora_id: operadoraId || undefined,
-          descricao: `Importado de pasta: ${f.relativePath}`,
+          categoria: f.categoria || "outro",
+          descricao: `Importado de pasta: ${f.relativePath}${f.operadora ? ` | Operadora detectada: ${f.operadora}` : ""}`,
           arquivo_url: publicUrl,
           status: "processando",
         });
 
-        // Trigger AI processing
         processar.mutate({ id: doc.id, tipo: f.type, arquivo_url: publicUrl });
 
         setFiles((prev) =>
@@ -166,7 +256,7 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
         errors++;
       }
 
-      setProgress(Math.round(((i + 1) / files.length) * 100));
+      setProgress(Math.round(((completed + errors) / toUpload.length) * 100));
     }
 
     setUploading(false);
@@ -175,27 +265,42 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
     );
   };
 
-  const pendingCount = files.filter((f) => f.status === "pending").length;
+  const categorizedCount = files.filter((f) => f.status === "categorized").length;
   const doneCount = files.filter((f) => f.status === "done").length;
   const errorCount = files.filter((f) => f.status === "error").length;
 
-  const byType = files.reduce<Record<string, number>>((acc, f) => {
-    acc[f.type] = (acc[f.type] || 0) + 1;
+  // Group by category for summary
+  const byCategoria = files.reduce<Record<string, number>>((acc, f) => {
+    if (f.categoria) {
+      acc[f.categoria] = (acc[f.categoria] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  const byOperadora = files.reduce<Record<string, number>>((acc, f) => {
+    if (f.operadora) {
+      acc[f.operadora] = (acc[f.operadora] || 0) + 1;
+    }
     return acc;
   }, {});
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v && !uploading) { reset(); } onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !uploading && !categorizing) { reset(); } onOpenChange(v); }}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FolderOpen className="h-5 w-5 text-brand" />
-            Upload de Pasta Completa
+            Upload Inteligente de Pasta
+            {categorizing && (
+              <Badge variant="outline" className="ml-2 text-[10px] animate-pulse border-brand text-brand">
+                <Sparkles className="h-3 w-3 mr-1" /> IA Categorizando...
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 min-h-0 flex flex-col gap-4">
-          {files.length === 0 ? (
+          {step === "select" ? (
             <div
               onDrop={handleDrop}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -210,9 +315,13 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
                 Clique para selecionar uma pasta
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                O sistema irá varrer todas as subpastas e encontrar documentos compatíveis
+                A IA irá varrer todas as subpastas, identificar e categorizar automaticamente cada documento
               </p>
-              <p className="text-[10px] text-muted-foreground mt-1">
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <Sparkles className="h-3.5 w-3.5 text-brand" />
+                <span className="text-xs text-brand font-medium">Categorização automática por IA</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
                 PDF, DOCX, DOC, XLSX, XLS, CSV, TXT, PNG, JPG (máx. 50MB por arquivo)
               </p>
               <input
@@ -225,18 +334,43 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
             </div>
           ) : (
             <>
-              {/* Summary */}
-              <div className="flex flex-wrap gap-3 text-xs">
+              {/* AI Classification Summary */}
+              {!categorizing && Object.keys(byCategoria).length > 0 && (
+                <div className="rounded-lg border border-brand/20 bg-brand-light/50 p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                    <Sparkles className="h-3.5 w-3.5 text-brand" />
+                    Classificação da IA
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(byCategoria).map(([cat, count]) => (
+                      <span
+                        key={cat}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${CATEGORIA_COLORS[cat] || CATEGORIA_COLORS.outro}`}
+                      >
+                        <Tag className="h-2.5 w-2.5" />
+                        {count} {CATEGORIA_LABELS[cat] || cat}
+                      </span>
+                    ))}
+                  </div>
+                  {Object.keys(byOperadora).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <span className="text-[10px] text-muted-foreground mr-1">Operadoras detectadas:</span>
+                      {Object.entries(byOperadora).map(([op, count]) => (
+                        <span key={op} className="inline-flex items-center rounded-full bg-surface px-2 py-0.5 text-[10px] text-foreground font-medium">
+                          {op} ({count})
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Stats */}
+              <div className="flex flex-wrap gap-2 text-xs">
                 <div className="flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 font-medium text-foreground">
                   <File className="h-3.5 w-3.5" />
-                  {files.length} arquivos encontrados
+                  {files.length} arquivos
                 </div>
-                {Object.entries(byType).map(([type, count]) => (
-                  <div key={type} className="flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 text-muted-foreground">
-                    {getFileIcon(type)}
-                    {count} {type.toUpperCase()}
-                  </div>
-                ))}
                 {doneCount > 0 && (
                   <div className="flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-1.5 text-green-700">
                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -251,38 +385,14 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
                 )}
               </div>
 
-              {/* Filters */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-1.5">
-                  <Label className="text-xs">Operadora (aplicar a todos)</Label>
-                  <Select value={operadoraId} onValueChange={setOperadoraId}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                    <SelectContent>
-                      {(operadoras || []).map((o) => (
-                        <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-xs">Categoria (aplicar a todos)</Label>
-                  <Select value={categoria} onValueChange={setCategoria}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Outro" /></SelectTrigger>
-                    <SelectContent>
-                      {categorias.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
               {/* File list */}
               <ScrollArea className="flex-1 max-h-[300px] border border-border rounded-lg">
                 <div className="divide-y divide-border">
                   {files.map((f, i) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
-                      {f.status === "uploading" ? (
+                      {f.status === "categorizing" ? (
+                        <Loader2 className="h-4 w-4 text-brand animate-spin shrink-0" />
+                      ) : f.status === "uploading" ? (
                         <Loader2 className="h-4 w-4 text-brand animate-spin shrink-0" />
                       ) : f.status === "done" ? (
                         <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
@@ -292,16 +402,31 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
                         getFileIcon(f.type)
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate">{f.relativePath}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {formatSize(f.file.size)}
-                          {f.error && <span className="text-red-500 ml-2">{f.error}</span>}
+                        <p className="text-xs font-medium text-foreground truncate">
+                          {f.tituloSugerido || f.file.name}
                         </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-muted-foreground">{formatSize(f.file.size)}</span>
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{f.relativePath}</span>
+                        </div>
+                        {f.error && <p className="text-[10px] text-red-500 mt-0.5">{f.error}</p>}
                       </div>
-                      {f.status === "pending" && !uploading && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {f.categoria && f.status !== "categorizing" && (
+                          <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium ${CATEGORIA_COLORS[f.categoria] || CATEGORIA_COLORS.outro}`}>
+                            {CATEGORIA_LABELS[f.categoria] || f.categoria}
+                          </span>
+                        )}
+                        {f.operadora && (
+                          <span className="inline-flex items-center rounded-full bg-surface px-1.5 py-0.5 text-[9px] text-muted-foreground">
+                            {f.operadora}
+                          </span>
+                        )}
+                      </div>
+                      {f.status === "categorized" && !uploading && (
                         <button
                           onClick={() => removeFile(i)}
-                          className="text-muted-foreground hover:text-destructive transition-colors"
+                          className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
                         >
                           <XCircle className="h-3.5 w-3.5" />
                         </button>
@@ -319,33 +444,40 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
         <DialogFooter>
           <Button
             variant="ghost"
-            onClick={() => { if (!uploading) { onOpenChange(false); reset(); } }}
-            disabled={uploading}
+            onClick={() => { if (!uploading && !categorizing) { onOpenChange(false); reset(); } }}
+            disabled={uploading || categorizing}
           >
-            {uploading ? "Processando..." : "Cancelar"}
+            Cancelar
           </Button>
-          {files.length > 0 && !uploading && doneCount !== files.length && (
-            <Button variant="outline" onClick={() => { reset(); }}>
+          {step === "review" && !uploading && !categorizing && (
+            <Button variant="outline" onClick={reset}>
               Trocar pasta
             </Button>
           )}
-          <Button
-            onClick={handleUploadAll}
-            disabled={files.length === 0 || uploading || pendingCount === 0}
-            className="bg-brand text-brand-foreground hover:bg-brand-hover"
-          >
-            {uploading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Enviando {doneCount + errorCount + 1}/{files.length}...
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4 mr-2" />
-                Enviar {pendingCount} arquivo{pendingCount !== 1 ? "s" : ""}
-              </>
-            )}
-          </Button>
+          {step !== "select" && (
+            <Button
+              onClick={handleUploadAll}
+              disabled={categorizedCount === 0 || uploading || categorizing}
+              className="bg-brand text-brand-foreground hover:bg-brand-hover"
+            >
+              {categorizing ? (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                  IA categorizando...
+                </>
+              ) : uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enviando {doneCount + errorCount + 1}/{files.length}...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Enviar {categorizedCount} arquivo{categorizedCount !== 1 ? "s" : ""} categorizados
+                </>
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
