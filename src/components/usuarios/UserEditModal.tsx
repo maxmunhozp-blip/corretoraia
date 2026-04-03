@@ -187,6 +187,11 @@ export function UserEditModal({ open, onOpenChange, usuario, isMaster, onSaved }
           {/* Dados pessoais */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Dados pessoais</h3>
+            {usuario?.email && (
+              <div className="text-sm text-muted-foreground bg-muted/30 rounded-md px-3 py-2">
+                📧 {usuario.email}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Nome completo</Label>
