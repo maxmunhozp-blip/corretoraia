@@ -87,6 +87,7 @@ const App = () => (
                 <Route path="/master/configuracoes" element={<Configuracoes />} />
               </Route>
               <Route path="/ranking/tv" element={<ProtectedRoute><RankingTV /></ProtectedRoute>} />
+              <Route path="/p/:slug" element={<PropostaPublica />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ImpersonationProvider>
