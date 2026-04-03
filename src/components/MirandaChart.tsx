@@ -111,18 +111,23 @@ export interface DownloadData {
   url: string;
 }
 
+export interface GeneratePdfData {
+  __pdf_type: string;
+  [key: string]: any;
+}
+
 /**
- * Parse message content and extract chart and download blocks.
+ * Parse message content and extract chart, download, and generate_pdf blocks.
  */
 export type MessageSegment =
   | { type: "text"; content: string }
   | { type: "chart"; data: ChartData }
-  | { type: "download"; data: DownloadData };
+  | { type: "download"; data: DownloadData }
+  | { type: "generate_pdf"; data: GeneratePdfData };
 
 export function parseMessageWithCharts(content: string): MessageSegment[] {
   const segments: MessageSegment[] = [];
-  // Match both ```chart and ```download blocks
-  const regex = /```(chart|download)\s*\n?([\s\S]*?)```/g;
+  const regex = /```(chart|download|generate_pdf)\s*\n?([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
 
@@ -132,13 +137,15 @@ export function parseMessageWithCharts(content: string): MessageSegment[] {
       if (text) segments.push({ type: "text", content: text });
     }
 
-    const blockType = match[1];
+    const blockType = match[1] as string;
     try {
       const parsed = JSON.parse(match[2].trim());
       if (blockType === "chart" && parsed.tipo && parsed.dados && parsed.titulo) {
         segments.push({ type: "chart", data: parsed as ChartData });
       } else if (blockType === "download" && parsed.filename) {
         segments.push({ type: "download", data: parsed as DownloadData });
+      } else if (blockType === "generate_pdf" && parsed.__pdf_type) {
+        segments.push({ type: "generate_pdf", data: parsed as GeneratePdfData });
       } else {
         segments.push({ type: "text", content: match[0] });
       }
