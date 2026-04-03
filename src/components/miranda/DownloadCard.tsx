@@ -24,7 +24,7 @@ function triggerDownload(url: string, filename: string) {
 }
 
 export function DownloadCard({ filename, size, url }: DownloadCardProps) {
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
 
   return (
     <>
