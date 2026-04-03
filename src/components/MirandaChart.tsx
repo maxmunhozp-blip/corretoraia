@@ -116,14 +116,22 @@ export interface GeneratePdfData {
   [key: string]: any;
 }
 
+export interface PesquisaClienteData {
+  nome: string;
+  cnpj?: string;
+  cidade?: string;
+  site?: string;
+}
+
 /**
- * Parse message content and extract chart, download, and generate_pdf blocks.
+ * Parse message content and extract chart, download, generate_pdf, and pesquisa_cliente blocks.
  */
 export type MessageSegment =
   | { type: "text"; content: string }
   | { type: "chart"; data: ChartData }
   | { type: "download"; data: DownloadData }
-  | { type: "generate_pdf"; data: GeneratePdfData };
+  | { type: "generate_pdf"; data: GeneratePdfData }
+  | { type: "pesquisa_cliente"; data: PesquisaClienteData };
 
 export function parseMessageWithCharts(content: string): MessageSegment[] {
   const segments: MessageSegment[] = [];
