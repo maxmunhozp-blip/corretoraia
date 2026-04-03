@@ -29,6 +29,7 @@ import MasterUsuarios from "./pages/master/MasterUsuarios";
 import MasterPlanos from "./pages/master/MasterPlanos";
 import MasterFinanceiro from "./pages/master/MasterFinanceiro";
 import UsuariosCorretora from "./pages/UsuariosCorretora";
+import Landing from "./pages/Landing";
 import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
         <AuthProvider>
           <ImpersonationProvider>
             <Routes>
+              <Route path="/landing" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
