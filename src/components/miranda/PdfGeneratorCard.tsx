@@ -28,6 +28,12 @@ export function PdfGeneratorCard({ data }: PdfGeneratorCardProps) {
           blob = gerarPropostaPdf(data as any);
           const clientName = (data.cliente_nome || "Cliente").replace(/\s+/g, "_");
           filename = `Proposta_${clientName}_${dateStr}.pdf`;
+        } else if (data.__pdf_type === "proposta_completa") {
+          const { gerarPropostaCompletaPdf } = await import("@/lib/proposta/gerarPropostaCompletaPdf");
+          blob = gerarPropostaCompletaPdf(data as any);
+          const clientName = (data.cliente_nome || "Cliente").replace(/\s+/g, "_");
+          const corretoraNome = (data.corretora?.nome || "Cora").replace(/\s+/g, "_");
+          filename = `Proposta_${clientName}_${corretoraNome}_${dateStr}.pdf`;
         } else if (data.__pdf_type === "relatorio_executivo") {
           const { gerarRelatorioExecutivo } = await import("@/lib/gerarRelatorioExecutivo");
           blob = gerarRelatorioExecutivo({ ...data, usuario: data.usuario || "Miranda" } as any);
