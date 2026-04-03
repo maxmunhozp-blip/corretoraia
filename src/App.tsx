@@ -30,6 +30,7 @@ import MasterPlanos from "./pages/master/MasterPlanos";
 import MasterFinanceiro from "./pages/master/MasterFinanceiro";
 import MasterConfiguracoes from "./pages/master/MasterConfiguracoes";
 import UsuariosCorretora from "./pages/UsuariosCorretora";
+import MinhaCorretora from "./pages/MinhaCorretora";
 import Landing from "./pages/Landing";
 import Cadastro from "./pages/Cadastro";
 import Onboarding from "./pages/Onboarding";
@@ -60,7 +61,6 @@ const App = () => (
                 }
               >
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/propostas" element={<Propostas />} />
                 <Route path="/clientes" element={<Clientes />} />
                 <Route path="/ranking" element={<Ranking />} />
@@ -70,6 +70,7 @@ const App = () => (
                 <Route path="/desenvolvimento" element={<Desenvolvimento />} />
                 <Route path="/configuracoes" element={<Configuracoes />} />
                 <Route path="/configuracoes/usuarios" element={<UsuariosCorretora />} />
+                <Route path="/configuracoes/corretora" element={<MinhaCorretora />} />
                 <Route path="/gestao" element={<Gestao />} />
                 <Route path="/miranda" element={<MirandaPage />} />
               </Route>
