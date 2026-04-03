@@ -390,7 +390,7 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
               </div>
 
               {/* File list */}
-              <ScrollArea className="flex-1 max-h-[300px] border border-border rounded-lg">
+              <ScrollArea className="flex-1 min-h-0 border border-border rounded-lg">
                 <div className="divide-y divide-border">
                   {files.map((f, i) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
