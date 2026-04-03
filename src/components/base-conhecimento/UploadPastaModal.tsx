@@ -85,6 +85,8 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
   const [files, setFiles] = useState<ScannedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [categorizing, setCategorizing] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanStats, setScanStats] = useState({ folders: 0, files: 0 });
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [step, setStep] = useState<"select" | "review" | "uploading">("select");
