@@ -394,6 +394,67 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "criar_proposta_interativa",
+      description: "Cria uma proposta interativa real no sistema com link público compartilhável. Use quando o usuário pedir para criar proposta, gerar link de proposta, ou enviar proposta para um cliente. Requer dados do cliente, plano atual e alternativas.",
+      parameters: {
+        type: "object",
+        properties: {
+          cliente_nome: { type: "string", description: "Nome do cliente" },
+          cliente_empresa: { type: "string", description: "Nome da empresa do cliente" },
+          cliente_email: { type: "string", description: "E-mail do cliente" },
+          cliente_telefone: { type: "string", description: "Telefone do cliente" },
+          vidas: { type: "number", description: "Número de vidas/beneficiários" },
+          plano_atual: {
+            type: "object",
+            description: "Plano atual do cliente",
+            properties: {
+              nome: { type: "string" },
+              operadora: { type: "string" },
+              valor_mensal: { type: "number" },
+              acomodacao: { type: "string" },
+              abrangencia: { type: "string" },
+              coparticipacao: { type: "boolean" },
+              vidas: { type: "number" },
+            },
+          },
+          alternativas: {
+            type: "array",
+            description: "Array de planos alternativos propostos",
+            items: {
+              type: "object",
+              properties: {
+                nome: { type: "string" },
+                operadora: { type: "string" },
+                valor_mensal: { type: "number" },
+                acomodacao: { type: "string" },
+                abrangencia: { type: "string" },
+                coparticipacao: { type: "boolean" },
+                reembolso: { type: "boolean" },
+                recomendado: { type: "boolean" },
+                descricao: { type: "string" },
+              },
+            },
+          },
+          beneficiarios: {
+            type: "array",
+            description: "Lista de beneficiários com nome, idade e valores por plano",
+            items: {
+              type: "object",
+              properties: {
+                nome: { type: "string" },
+                idade: { type: "number" },
+                valores: { type: "object" },
+              },
+            },
+          },
+        },
+        required: ["cliente_nome", "alternativas"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "salvar_memoria",
       description: "Salva uma nova memória/aprendizado da Miranda. Use quando o usuário der feedback positivo ou negativo sobre algo (design, tom, layout, etc), quando aprender uma preferência da corretora, ou quando quiser registrar algo para lembrar depois.",
       parameters: {
