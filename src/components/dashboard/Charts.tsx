@@ -1,28 +1,18 @@
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, Legend,
 } from "recharts";
-import { vendasSemanais, propostasDiarias } from "@/data/mock";
 
-const last7Days = propostasDiarias.slice(-7);
+interface SalesData { semana: string; vendas: number }
+interface ProposalData { dia: string; criadas: number; fechadas: number }
 
-export function SalesBarChart({ index }: { index: number }) {
+export function SalesBarChart({ index, data }: { index: number; data: SalesData[] }) {
   return (
-    <div
-      className="rounded-lg border border-border bg-card p-5 opacity-0"
-      style={{ animation: `staggerIn 0.4s ease-out ${index * 100}ms forwards` }}
-    >
+    <div className="rounded-lg border border-border bg-card p-5 opacity-0"
+      style={{ animation: `staggerIn 0.4s ease-out ${index * 100}ms forwards` }}>
       <h3 className="text-sm font-medium text-muted-foreground mb-4">Vendas por semana</h3>
       <ResponsiveContainer width="100%" height={240}>
-        <BarChart data={vendasSemanais}>
+        <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 6% 90%)" />
           <XAxis dataKey="semana" tick={{ fontSize: 12, fill: "#71717A" }} />
           <YAxis tick={{ fontSize: 12, fill: "#71717A" }} />
@@ -34,15 +24,13 @@ export function SalesBarChart({ index }: { index: number }) {
   );
 }
 
-export function ProposalsLineChart({ index }: { index: number }) {
+export function ProposalsLineChart({ index, data }: { index: number; data: ProposalData[] }) {
   return (
-    <div
-      className="rounded-lg border border-border bg-card p-5 opacity-0"
-      style={{ animation: `staggerIn 0.4s ease-out ${index * 100}ms forwards` }}
-    >
+    <div className="rounded-lg border border-border bg-card p-5 opacity-0"
+      style={{ animation: `staggerIn 0.4s ease-out ${index * 100}ms forwards` }}>
       <h3 className="text-sm font-medium text-muted-foreground mb-4">Propostas criadas vs fechadas</h3>
       <ResponsiveContainer width="100%" height={240}>
-        <LineChart data={last7Days}>
+        <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 6% 90%)" />
           <XAxis dataKey="dia" tick={{ fontSize: 12, fill: "#71717A" }} />
           <YAxis tick={{ fontSize: 12, fill: "#71717A" }} />
