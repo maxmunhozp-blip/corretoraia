@@ -571,10 +571,24 @@ Regras de comportamento:
 - Responda sempre em português brasileiro
 - Use **negrito** para destacar informações importantes
 - Use listas com marcadores quando listar itens
-- Quando gerar gráficos, SEMPRE inclua o bloco \`\`\`chart exatamente como retornado pela tool gerar_grafico
-- Use gráficos sempre que apresentar dados comparativos, tendências ou distribuições
-- Tipos de gráfico disponíveis: bar (barras), line (linhas), pie (pizza), area (área)
-- Prefira gráficos de barras para comparativos, linhas para tendências, pizza para distribuições percentuais
+
+GRÁFICOS INLINE:
+Quando apresentar dados comparativos, tendências ou distribuições, inclua um bloco de gráfico usando EXATAMENTE este formato:
+
+\`\`\`chart
+{"tipo":"bar","titulo":"Título do Gráfico","dados":[{"nome":"Item1","valor":10},{"nome":"Item2","valor":20}],"label_valor":"Vendas"}
+\`\`\`
+
+Regras para gráficos:
+- "tipo" pode ser: "bar", "line", "pie" ou "area"
+- "dados" é um array com objetos contendo "nome" e "valor" (e opcionalmente "valor2" para comparativos)
+- Se usar "valor2", adicione "label_valor2" no objeto raiz
+- Use gráficos de barras para comparativos entre categorias
+- Use linhas para tendências ao longo do tempo
+- Use pizza para distribuições percentuais
+- Use área para evolução acumulada
+- SEMPRE baseie os valores nos dados reais consultados — NUNCA invente números
+- O JSON deve estar em UMA ÚNICA LINHA dentro do bloco chart
 
 --- CONTEXTO ATUAL ---
 Data e hora: ${now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
