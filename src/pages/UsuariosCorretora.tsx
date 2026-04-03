@@ -33,7 +33,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MoreVertical, Plus, UserPlus } from "lucide-react";
+import { MoreVertical, Plus, UserPlus, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 
@@ -41,6 +41,7 @@ export default function UsuariosCorretora() {
   const { profile, user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -109,15 +110,21 @@ export default function UsuariosCorretora() {
       return senha;
     },
     onSuccess: (senha) => {
-      toast.success(`Usuário convidado. Senha: ${senha}`);
+      toast.success(`Usuário ${form.nome} convidado com sucesso!`);
       setOpen(false);
+      setEmailError("");
       setForm({ nome: "", email: "", cargo: "", role: "vendedor", senha: "" });
       queryClient.invalidateQueries({
         queryKey: ["corretora-usuarios"],
       });
     },
     onError: (err: any) => {
-      toast.error("Erro: " + err.message);
+      const msg = err.message || "Erro ao convidar usuário";
+      if (msg.includes("já está cadastrado") || msg.includes("já existe")) {
+        setEmailError("Este e-mail já está em uso. Tente outro endereço.");
+      } else {
+        toast.error(msg);
+      }
     },
   });
 
@@ -189,8 +196,15 @@ export default function UsuariosCorretora() {
                 <Input
                   type="email"
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) => { setForm({ ...form, email: e.target.value }); setEmailError(""); }}
+                  className={emailError ? "border-destructive" : ""}
                 />
+                {emailError && (
+                  <p className="flex items-center gap-1 text-xs text-destructive mt-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {emailError}
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Cargo</Label>
@@ -235,6 +249,7 @@ export default function UsuariosCorretora() {
                 }
                 className="bg-brand hover:bg-brand-hover text-white"
               >
+                {convidarMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 {convidarMutation.isPending ? "Convidando..." : "Convidar"}
               </Button>
             </div>
