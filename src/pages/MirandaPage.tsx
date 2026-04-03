@@ -349,7 +349,7 @@ export default function MirandaPage() {
   ];
 
   return (
-    <div className="flex h-[calc(100vh-0px)] bg-background -m-6">
+    <div className="flex h-[calc(100vh-0px)] bg-background -m-6 overflow-hidden">
       {/* LEFT SIDEBAR */}
       <div className="w-[280px] border-r border-border flex flex-col bg-card shrink-0">
         <div className="px-4 pt-5 pb-3">
@@ -424,8 +424,8 @@ export default function MirandaPage() {
           </button>
         </div>
 
-        <ScrollArea className="flex-1">
-          <div className="max-w-3xl mx-auto px-6 py-6 space-y-4">
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="max-w-3xl mx-auto px-6 py-6 space-y-4 overflow-visible">
             {!conversaAtiva && mensagens.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 space-y-6">
                 <div className="h-16 w-16 rounded-2xl bg-brand-light flex items-center justify-center">
