@@ -15,6 +15,7 @@ import Ranking from "./pages/Ranking";
 import Alertas from "./pages/Alertas";
 import BaseConhecimento from "./pages/BaseConhecimento";
 import Acessos from "./pages/Acessos";
+import Desenvolvimento from "./pages/Desenvolvimento";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
