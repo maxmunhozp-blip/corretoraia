@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Sparkles, X, Send, Database, Search, RefreshCw, FileText, BarChart3, AlertTriangle } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import ReactMarkdown from "react-markdown";
+import { MirandaMarkdown } from "./MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "./MirandaChart";
 
 interface Message {
@@ -288,9 +288,7 @@ export function MirandaPanel({
                     segment.type === "chart" ? (
                       <MirandaChart key={si} data={segment.data} />
                     ) : (
-                      <div key={si} className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
-                        <ReactMarkdown>{segment.content}</ReactMarkdown>
-                      </div>
+                      <MirandaMarkdown key={si} content={segment.content} />
                     )
                   )}
                   {streaming && i === messages.length - 1 && <BlinkingCursor />}

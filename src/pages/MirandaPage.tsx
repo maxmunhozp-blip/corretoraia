@@ -7,7 +7,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useMirandaConversas } from "@/hooks/useMirandaConversas";
 import { supabase } from "@/integrations/supabase/client";
-import ReactMarkdown from "react-markdown";
+import { MirandaMarkdown } from "@/components/MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "@/components/MirandaChart";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
@@ -306,9 +306,7 @@ export default function MirandaPage() {
                       seg.type === "chart" ? (
                         <MirandaChart key={si} data={seg.data} />
                       ) : (
-                        <div key={si} className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
-                          <ReactMarkdown>{seg.content}</ReactMarkdown>
-                        </div>
+                        <MirandaMarkdown key={si} content={seg.content} />
                       )
                     )}
                     {streaming && i === mensagens.length - 1 && <BlinkingCursor />}
