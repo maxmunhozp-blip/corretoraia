@@ -284,6 +284,7 @@ export function MirandaPanel({
   };
 
   const handleSelectConversa = (id: string) => {
+    isFirstLoad.current = true;
     carregarMensagens(id);
     setShowHistory(false);
     setShowSuggestions(false);
