@@ -170,7 +170,7 @@ export function MirandaPanel({
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [hoveredConversa, setHoveredConversa] = useState<string | null>(null);
+  
   const [pesquisaResult, setPesquisaResult] = useState<Record<string, any> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
