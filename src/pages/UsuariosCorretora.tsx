@@ -105,7 +105,18 @@ export default function UsuariosCorretora() {
           },
         }
       );
-      if (error) throw error;
+      if (error) {
+        // Try to extract the JSON body from the edge function error
+        let msg = "Erro ao convidar usuário";
+        try {
+          const body = await error.context?.json?.();
+          if (body?.error) msg = body.error;
+        } catch {
+          // If context is not available, try parsing the message
+          if (error.message) msg = error.message;
+        }
+        throw new Error(msg);
+      }
       if (data?.error) throw new Error(data.error);
       return senha;
     },
