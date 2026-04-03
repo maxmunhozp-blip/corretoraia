@@ -595,10 +595,12 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
         console.log(`Executing tool: ${fnName}`, fnArgs);
         const result = await executeTool(fnName, fnArgs, supabase);
+        console.log(`Tool result length: ${result.length}`);
         results.push(`[Resultado de ${fnName}]: ${result}`);
       }
 
       toolResultsContext = "\n\n--- DADOS CONSULTADOS ---\n" + results.join("\n\n");
+      console.log(`Tool results context length: ${toolResultsContext.length}`);
     }
 
     // Step 3: Stream final response with tool results injected into context
