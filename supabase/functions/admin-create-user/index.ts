@@ -11,6 +11,10 @@ function respond(body: object, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
 }
 
+function respondFormError(message: string) {
+  return respond({ success: false, error: message }, 200);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -23,14 +27,20 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify caller
-    const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
+    const callerClient = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      {
+        global: { headers: { Authorization: authHeader } },
+      }
+    );
+
+    const {
+      data: { user: caller },
+    } = await callerClient.auth.getUser();
+
     if (!caller) return respond({ error: "Não autorizado" }, 401);
 
-    // Check caller role
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: callerProfile } = await adminClient
       .from("profiles")
@@ -46,19 +56,18 @@ Deno.serve(async (req) => {
     const { email, password, nome, cargo, role, corretora_id } = body;
 
     if (!email || !password || !nome) {
-      return respond({ error: "Email, senha e nome são obrigatórios" }, 400);
+      return respondFormError("Email, senha e nome são obrigatórios");
     }
 
-    // Validate permissions for admin_corretora
     if (callerProfile.role === "admin_corretora") {
       if (!["admin_corretora", "vendedor", "gerente"].includes(role)) {
-        return respond({ error: "Role inválido" }, 400);
+        return respondFormError("Role inválido");
       }
+
       if (corretora_id !== callerProfile.corretora_id) {
         return respond({ error: "Sem permissão para esta corretora" }, 403);
       }
 
-      // Check user limit
       const { data: corretora } = await adminClient
         .from("corretoras")
         .select("max_usuarios, plano")
@@ -73,14 +82,18 @@ Deno.serve(async (req) => {
           .eq("ativo", true);
 
         if ((count ?? 0) >= corretora.max_usuarios) {
-          return respond({ error: "Limite de usuários atingido. Faça upgrade do plano." }, 400);
+          return respondFormError("Limite de usuários atingido. Faça upgrade do plano.");
         }
       }
     }
 
-    const initials = nome.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+    const initials = nome
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
 
-    // Helper to create profile for a given user id
     async function createProfileForUser(userId: string) {
       const { error: profileError } = await adminClient.from("profiles").insert({
         id: userId,
@@ -91,10 +104,10 @@ Deno.serve(async (req) => {
         avatar_iniciais: initials,
         ativo: true,
       });
+
       return profileError;
     }
 
-    // Try to create auth user
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -102,57 +115,42 @@ Deno.serve(async (req) => {
     });
 
     if (authError) {
-      // If email already exists in auth, handle orphan user scenario
-      if (authError.message?.includes("already been registered") || (authError as any).status === 422) {
-        // Find the existing auth user
-        const { data: listData } = await adminClient.auth.admin.listUsers({ perPage: 1 });
-        let existingUserId: string | null = null;
+      if (
+        authError.message?.includes("already been registered") ||
+        authError.message?.includes("User already registered") ||
+        (authError as { status?: number }).status === 422
+      ) {
+        const { data: allUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+        const existingUser = allUsers?.users?.find((u: { email?: string; id: string }) => u.email === email);
 
-        if (listData?.users) {
-          const found = listData.users.find((u: any) => u.email === email);
-          if (found) existingUserId = found.id;
+        if (!existingUser) {
+          return respondFormError("Este e-mail já está cadastrado no sistema.");
         }
 
-        // If we can't find the user via list, try a broader search
-        if (!existingUserId) {
-          const { data: allUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-          if (allUsers?.users) {
-            const found = allUsers.users.find((u: any) => u.email === email);
-            if (found) existingUserId = found.id;
-          }
-        }
-
-        if (!existingUserId) {
-          return respond({ error: "Este e-mail já está cadastrado no sistema." }, 400);
-        }
-
-        // Check if this user already has a profile
         const { data: existingProfile } = await adminClient
           .from("profiles")
           .select("id")
-          .eq("id", existingUserId)
+          .eq("id", existingUser.id)
           .maybeSingle();
 
         if (existingProfile) {
-          return respond({ error: "Este e-mail já está cadastrado no sistema." }, 400);
+          return respondFormError("Este e-mail já está cadastrado no sistema.");
         }
 
-        // Orphan user: auth exists but no profile — create the profile
-        const profileError = await createProfileForUser(existingUserId);
-        if (profileError) {
-          return respond({ error: "Erro ao criar perfil: " + profileError.message }, 500);
+        const orphanProfileError = await createProfileForUser(existingUser.id);
+        if (orphanProfileError) {
+          return respondFormError(`Erro ao criar perfil: ${orphanProfileError.message}`);
         }
 
         return respond({
           success: true,
-          user: { id: existingUserId, email, nome, role: role || "vendedor" },
+          user: { id: existingUser.id, email, nome, role: role || "vendedor" },
         });
       }
 
-      return respond({ error: authError.message }, 400);
+      return respondFormError(authError.message || "Erro ao convidar usuário");
     }
 
-    // Auth user created successfully — check for existing profile (shouldn't happen but safety check)
     const { data: existingProfile } = await adminClient
       .from("profiles")
       .select("id")
@@ -160,19 +158,18 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingProfile) {
-      return respond({ error: "Este e-mail já está cadastrado no sistema." }, 400);
+      return respondFormError("Este e-mail já está cadastrado no sistema.");
     }
 
-    // Create profile for the new auth user
     const profileError = await createProfileForUser(authData.user.id);
 
     if (profileError) {
       if (profileError.code === "23505") {
-        return respond({ error: "Usuário já existe no sistema. Verifique a lista de usuários." }, 400);
+        return respondFormError("Usuário já existe no sistema. Verifique a lista de usuários.");
       }
-      // Rollback: delete the auth user we just created
+
       await adminClient.auth.admin.deleteUser(authData.user.id);
-      return respond({ error: profileError.message }, 400);
+      return respondFormError(profileError.message || "Erro ao criar perfil do usuário");
     }
 
     return respond({
@@ -180,6 +177,7 @@ Deno.serve(async (req) => {
       user: { id: authData.user.id, email, nome, role: role || "vendedor" },
     });
   } catch (err) {
-    return respond({ error: err.message }, 500);
+    const message = err instanceof Error ? err.message : "Erro interno";
+    return respond({ error: message }, 500);
   }
 });
