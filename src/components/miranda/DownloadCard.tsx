@@ -24,7 +24,7 @@ function triggerDownload(url: string, filename: string) {
 }
 
 export function DownloadCard({ filename, size, url }: DownloadCardProps) {
-  const [showPreview, setShowPreview] = useState(true);
+  const [showModal, setShowModal] = useState(false);
 
   return (
     <>
@@ -40,7 +40,7 @@ export function DownloadCard({ filename, size, url }: DownloadCardProps) {
 
         <button
           type="button"
-          onClick={() => setShowPreview((v) => !v)}
+          onClick={() => setShowModal(true)}
           className="flex shrink-0 items-center gap-1.5 rounded-lg border border-brand/30 bg-background px-3 py-2 text-xs font-medium text-brand transition-colors hover:bg-brand-light"
         >
           <Eye className="h-3.5 w-3.5" />
@@ -57,34 +57,35 @@ export function DownloadCard({ filename, size, url }: DownloadCardProps) {
         </button>
       </div>
 
-      {showPreview && (
-        <div className="my-2 rounded-xl border border-brand/20 bg-background overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-            <span className="text-xs font-medium text-muted-foreground truncate">{filename}</span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => window.open(url, "_blank")}
-                className="p-1.5 rounded-md hover:bg-background transition-colors"
-                title="Abrir em tela cheia"
-              >
-                <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPreview(false)}
-                className="p-1.5 rounded-md hover:bg-background transition-colors"
-              >
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)}>
+          <div className="relative w-[90vw] max-w-4xl h-[85vh] bg-background rounded-2xl shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
+              <span className="text-sm font-medium text-foreground truncate">{filename}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => window.open(url, "_blank")}
+                  className="p-2 rounded-md hover:bg-muted transition-colors"
+                  title="Abrir em nova aba"
+                >
+                  <Maximize2 className="h-4 w-4 text-muted-foreground" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="p-2 rounded-md hover:bg-muted transition-colors"
+                >
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
             </div>
+            <iframe
+              src={`${url}#toolbar=1&navpanes=0`}
+              className="flex-1 w-full border-0"
+              title={filename}
+            />
           </div>
-          <iframe
-            src={`${url}#toolbar=1&navpanes=0`}
-            className="w-full border-0"
-            style={{ height: 480 }}
-            title={filename}
-          />
         </div>
       )}
     </>
