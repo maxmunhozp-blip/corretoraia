@@ -93,7 +93,7 @@ export default function UsuariosCorretora() {
 
   const maxUsuarios = corretora?.max_usuarios ?? 3;
   const ativos = usuarios.filter((u: any) => u.ativo).length;
-  const limiteAtingido = maxUsuarios > 0 && ativos >= maxUsuarios;
+  const limiteAtingido = !isMaster && maxUsuarios > 0 && ativos >= maxUsuarios;
 
   const convidarMutation = useMutation({
     mutationFn: async () => {
@@ -183,21 +183,24 @@ export default function UsuariosCorretora() {
   });
 
   const roleLabel = (r: string) =>
-    r === "admin_corretora" ? "Administrador" : r === "vendedor" ? "Vendedor" : r === "gerente" ? "Gerente" : r;
+    r === "admin_corretora" ? "Administrador" : r === "vendedor" ? "Vendedor" : r === "gerente" ? "Gerente" : r === "master" ? "Master" : r;
 
   return (
     <PageWrapper
       title="Usuários"
       subtitle="Gerencie os usuários da sua corretora"
     >
-      <div className="flex items-center justify-between mb-6">
-        <Badge
-          variant="outline"
-          className="bg-transparent text-sm py-1 px-3"
-        >
-          {ativos} de {maxUsuarios || "∞"} usuários (plano{" "}
-          {corretora?.plano || "—"})
-        </Badge>
+      <div className="flex items-center justify-between mb-6 gap-4">
+        {!isMaster && (
+          <Badge
+            variant="outline"
+            className="bg-transparent text-sm py-1 px-3 shrink-0"
+          >
+            {ativos} de {maxUsuarios || "∞"} usuários (plano{" "}
+            {corretora?.plano || "—"})
+          </Badge>
+        )}
+        {isMaster && <div />}
 
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEmailError(""); }}>
           <Tooltip>
