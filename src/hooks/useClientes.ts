@@ -114,3 +114,18 @@ export function useCreateCliente() {
     },
   });
 }
+
+export function useUpdateCliente() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: CreateClienteInput & { id: string }) => {
+      const { data, error } = await supabase.from("clientes").update(input).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clientes"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente-detail"] });
+    },
+  });
+}
