@@ -105,3 +105,15 @@
   to { transform: translateX(0); }
 }
 .animate-slide-in-right { animation: slideInRight 0.3s ease-out; }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.animate-blink { animation: blink 0.8s ease-in-out infinite; }
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow { animation: spinSlow 2s linear infinite; }
