@@ -4,9 +4,9 @@ import { MirandaFab } from "./Miranda";
 
 export function AppLayout() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background overflow-hidden">
       <AppSidebar />
-      <main className="ml-60 min-h-screen bg-surface">
+      <main className="flex-1 min-w-0 min-h-screen overflow-auto bg-surface">
         <Outlet />
       </main>
       <MirandaFab />

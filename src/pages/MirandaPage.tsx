@@ -2,8 +2,13 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import {
   Sparkles, Plus, Trash2, Send, PanelRightClose, PanelRightOpen,
   FileText, BarChart3, AlertTriangle, Database, Search, RefreshCw,
-  MessageSquare, Clock, Zap, Paperclip,
+  MessageSquare, Clock, Zap, Paperclip, Pencil,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMirandaConversas } from "@/hooks/useMirandaConversas";
 import { supabase } from "@/integrations/supabase/client";
