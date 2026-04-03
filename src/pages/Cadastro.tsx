@@ -153,6 +153,7 @@ export default function Cadastro() {
           data: {
             nome: form.nome,
             nome_corretora: form.nomeCorretora,
+            cnpj: form.cnpj ? form.cnpj.replace(/\D/g, "") : undefined,
             telefone: form.telefone,
             plano: selectedPlano,
           },
