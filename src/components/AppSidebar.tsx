@@ -12,9 +12,12 @@ import {
   Building2,
   LogOut,
   Sparkles,
+  Shield,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { X } from "lucide-react";
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -34,6 +37,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+  const { impersonating, corretora, stopImpersonation } = useImpersonation();
 
   const handleLogout = async () => {
     await signOut();
@@ -44,49 +48,105 @@ export function AppSidebar() {
   const displayCargo = profile?.cargo ?? "Vendedor";
   const initials = profile?.avatar_iniciais ?? displayName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
-  return (
-    <aside className="fixed left-0 top-0 h-screen w-60 border-r border-border bg-background flex flex-col z-50">
-      <div className="flex items-center gap-2 px-5 py-5">
-        <Activity className="h-6 w-6 text-brand" />
-        <span className="text-xl font-bold text-foreground">Cora</span>
-      </div>
+  const role = profile?.role;
+  const showUsuarios = role === "admin_corretora" || role === "master";
 
-      <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const active = location.pathname === item.url;
-          return (
+  // Filter nav items based on role
+  const filteredItems = navItems.filter(item => {
+    if (item.url === "/configuracoes" && role === "corretor") return true;
+    return true;
+  });
+
+  return (
+    <>
+      {impersonating && corretora && (
+        <div className="fixed top-0 left-60 right-0 z-[60] bg-amber-500 text-amber-950 px-4 py-2 flex items-center justify-between text-sm font-medium">
+          <span>
+            Visualizando <strong>{corretora.nome}</strong> em modo leitura
+          </span>
+          <button
+            onClick={stopImpersonation}
+            className="flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-md text-xs font-semibold transition-colors"
+          >
+            <X className="h-3 w-3" />
+            Sair
+          </button>
+        </div>
+      )}
+      <aside className={`fixed left-0 top-0 h-screen w-60 border-r border-border bg-background flex flex-col z-50`}>
+        <div className="flex items-center gap-2 px-5 py-5">
+          <Activity className="h-6 w-6 text-brand" />
+          <span className="text-xl font-bold text-foreground">Cora</span>
+        </div>
+
+        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+          {filteredItems.map((item) => {
+            const active = location.pathname === item.url;
+            return (
+              <NavLink
+                key={item.url}
+                to={item.url}
+                className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                  active
+                    ? "bg-brand-light text-brand"
+                    : "text-muted-foreground hover:bg-surface hover:translate-x-0.5"
+                }`}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span>{item.title}</span>
+              </NavLink>
+            );
+          })}
+
+          {showUsuarios && (
             <NavLink
-              key={item.url}
-              to={item.url}
+              to="/configuracoes/usuarios"
               className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                active
+                location.pathname === "/configuracoes/usuarios"
                   ? "bg-brand-light text-brand"
                   : "text-muted-foreground hover:bg-surface hover:translate-x-0.5"
               }`}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
-              <span>{item.title}</span>
+              <Users className="h-4 w-4 shrink-0" />
+              <span>Usuários</span>
             </NavLink>
-          );
-        })}
-      </nav>
+          )}
 
-      <div className="border-t border-border px-4 py-4 flex items-center gap-3">
-        <div className="h-9 w-9 rounded-full bg-brand-light flex items-center justify-center text-brand text-sm font-semibold">
-          {initials}
+          {role === "master" && (
+            <>
+              <div className="my-3 border-t border-border" />
+              <NavLink
+                to="/master"
+                className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                  location.pathname.startsWith("/master")
+                    ? "bg-brand-light text-brand"
+                    : "text-muted-foreground hover:bg-surface hover:translate-x-0.5"
+                }`}
+              >
+                <Shield className="h-4 w-4 shrink-0" />
+                <span>Painel Master</span>
+              </NavLink>
+            </>
+          )}
+        </nav>
+
+        <div className="border-t border-border px-4 py-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-brand-light flex items-center justify-center text-brand text-sm font-semibold">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium text-foreground block truncate">{displayName}</span>
+            <span className="text-xs text-muted-foreground block truncate">{displayCargo}</span>
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Sair"
+            className="p-1.5 rounded-md hover:bg-surface transition-colors"
+          >
+            <LogOut className="h-4 w-4 text-muted-foreground" />
+          </button>
         </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-sm font-medium text-foreground block truncate">{displayName}</span>
-          <span className="text-xs text-muted-foreground block truncate">{displayCargo}</span>
-        </div>
-        <button
-          onClick={handleLogout}
-          title="Sair"
-          className="p-1.5 rounded-md hover:bg-surface transition-colors"
-        >
-          <LogOut className="h-4 w-4 text-muted-foreground" />
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

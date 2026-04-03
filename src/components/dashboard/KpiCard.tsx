@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { useCountUp } from "@/hooks/useCountUp";
 
-interface KpiCardProps {
+export interface KpiCardProps {
   title: string;
   value: number;
   prefix?: string;
@@ -11,7 +11,8 @@ interface KpiCardProps {
   badgePositive?: boolean;
   subtitle?: string;
   icon: LucideIcon;
-  index: number;
+  index?: number;
+  className?: string;
   children?: ReactNode;
 }
 
@@ -24,15 +25,17 @@ export function KpiCard({
   subtitle,
   icon: Icon,
   index,
+  className,
   children,
 }: KpiCardProps) {
-  const animatedValue = useCountUp(value, 1200, index * 100);
+  const idx = index ?? 0;
+  const animatedValue = useCountUp(value, 1200, idx * 100);
 
   return (
     <div
-      className="rounded-lg border border-border bg-card p-5 flex flex-col gap-3 opacity-0"
+      className={`rounded-lg border border-border bg-card p-5 flex flex-col gap-3 opacity-0 ${className || ""}`}
       style={{
-        animation: `staggerIn 0.4s ease-out ${index * 100}ms forwards`,
+        animation: `staggerIn 0.4s ease-out ${idx * 100}ms forwards`,
       }}
     >
       <div className="flex items-center justify-between">
