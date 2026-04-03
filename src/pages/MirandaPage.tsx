@@ -2,8 +2,13 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import {
   Sparkles, Plus, Trash2, Send, PanelRightClose, PanelRightOpen,
   FileText, BarChart3, AlertTriangle, Database, Search, RefreshCw,
-  MessageSquare, Clock, Zap, Paperclip,
+  MessageSquare, Clock, Zap, Paperclip, Pencil,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMirandaConversas } from "@/hooks/useMirandaConversas";
 import { supabase } from "@/integrations/supabase/client";
@@ -185,6 +190,9 @@ export default function MirandaPage() {
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [hoveredConversa, setHoveredConversa] = useState<string | null>(null);
+  const [editingConversa, setEditingConversa] = useState<string | null>(null);
+  const [editingTitulo, setEditingTitulo] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateStyle>("detalhado");
   
@@ -396,9 +404,9 @@ export default function MirandaPage() {
   ];
 
   return (
-    <div className="flex h-screen bg-background fixed inset-0 left-60 z-10 overflow-hidden">
-      {/* LEFT SIDEBAR */}
-      <div className="w-[280px] border-r border-border flex flex-col bg-card shrink-0">
+    <div className="flex h-[calc(100vh)] bg-background overflow-hidden">
+      {/* LEFT SIDEBAR - hidden below md */}
+      <div className="hidden md:flex w-[280px] border-r border-border flex-col bg-card shrink-0">
         <div className="px-4 pt-5 pb-3">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="h-5 w-5 text-brand" />
@@ -418,42 +426,113 @@ export default function MirandaPage() {
             {conversas.map((c) => (
               <div
                 key={c.id}
-                onClick={() => carregarMensagens(c.id)}
+                onClick={() => { if (editingConversa !== c.id) carregarMensagens(c.id); }}
                 onMouseEnter={() => setHoveredConversa(c.id)}
                 onMouseLeave={() => setHoveredConversa(null)}
-                className={`group flex items-center gap-2 rounded-lg px-3 py-2.5 cursor-pointer transition-colors text-sm ${
+                className={`group relative flex items-center gap-2 rounded-lg px-3 py-2.5 cursor-pointer text-sm transition-colors duration-150 ${
                   conversaAtiva === c.id
-                    ? "bg-brand-light text-foreground"
-                    : "text-muted-foreground hover:bg-surface"
+                    ? "bg-[#F5EDEC] border-l-[3px] border-l-[#955251] text-foreground"
+                    : "text-muted-foreground hover:bg-[#F4F4F5]"
                 }`}
               >
                 <MessageSquare className="h-3.5 w-3.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="truncate font-medium text-xs">{c.titulo}</p>
+                  {editingConversa === c.id ? (
+                    <input
+                      autoFocus
+                      value={editingTitulo}
+                      onChange={(e) => setEditingTitulo(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (editingTitulo.trim()) {
+                            atualizarTitulo(c.id, editingTitulo.trim());
+                            toast.success("Conversa renomeada");
+                          }
+                          setEditingConversa(null);
+                        }
+                        if (e.key === "Escape") setEditingConversa(null);
+                      }}
+                      onBlur={() => {
+                        if (editingTitulo.trim() && editingTitulo.trim() !== c.titulo) {
+                          atualizarTitulo(c.id, editingTitulo.trim());
+                          toast.success("Conversa renomeada");
+                        }
+                        setEditingConversa(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full bg-transparent text-xs font-medium outline-none border-b border-[#955251] py-0.5"
+                    />
+                  ) : (
+                    <p className="truncate font-medium text-xs">{c.titulo}</p>
+                  )}
                   <p className="text-[10px] text-muted-foreground">
-                    {format(new Date(c.created_at), "dd MMM, HH:mm", { locale: ptBR })}
+                    {formatDistanceToNow(new Date(c.updated_at || c.created_at), { addSuffix: true, locale: ptBR })}
                   </p>
                 </div>
-                {hoveredConversa === c.id && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deletarConversa(c.id); }}
-                    className="p-1 rounded hover:bg-destructive/10 transition-colors"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </button>
+                {hoveredConversa === c.id && editingConversa !== c.id && (
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingConversa(c.id);
+                        setEditingTitulo(c.titulo);
+                      }}
+                      className="p-1 rounded hover:bg-muted transition-colors"
+                      title="Renomear"
+                    >
+                      <Pencil className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(c.id); }}
+                      className="p-1 rounded hover:bg-destructive/10 transition-colors"
+                      title="Deletar"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
             {conversas.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-8">Nenhuma conversa ainda</p>
+              <div className="flex flex-col items-center justify-center py-12 space-y-2">
+                <MessageSquare className="h-8 w-8" style={{ color: "#E4E4E7" }} />
+                <p className="text-xs text-muted-foreground font-medium">Nenhuma conversa ainda</p>
+                <p className="text-[10px] text-muted-foreground text-center">Suas conversas com a Miranda aparecem aqui</p>
+              </div>
             )}
           </div>
         </ScrollArea>
       </div>
 
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deletar conversa</AlertDialogTitle>
+            <AlertDialogDescription>Essa ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-[#DC2626] hover:bg-[#DC2626]/90 text-white"
+              onClick={() => {
+                if (deleteConfirmId) {
+                  deletarConversa(deleteConfirmId);
+                  toast.success("Conversa deletada");
+                }
+                setDeleteConfirmId(null);
+              }}
+            >
+              Deletar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* CENTRAL CHAT */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card">
+        <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-border bg-card">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-brand" />
             <span className="text-sm font-semibold text-foreground">
@@ -464,7 +543,7 @@ export default function MirandaPage() {
           </div>
           <button
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
-            className="p-2 rounded-md hover:bg-surface transition-colors"
+            className="hidden xl:flex p-2 rounded-md hover:bg-surface transition-colors"
             title={rightPanelOpen ? "Fechar painel" : "Abrir painel"}
           >
             {rightPanelOpen ? <PanelRightClose className="h-4 w-4 text-muted-foreground" /> : <PanelRightOpen className="h-4 w-4 text-muted-foreground" />}
@@ -472,7 +551,7 @@ export default function MirandaPage() {
         </div>
 
         <ScrollArea className="flex-1 min-h-0">
-          <div className="max-w-3xl mx-auto px-6 py-6 space-y-4 overflow-visible">
+          <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 space-y-4">
             {!conversaAtiva && mensagens.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 space-y-6">
                 <div className="h-16 w-16 rounded-2xl bg-brand-light flex items-center justify-center">
@@ -572,7 +651,7 @@ export default function MirandaPage() {
         </ScrollArea>
 
         {/* Input area */}
-        <div className="border-t border-border bg-card px-6 py-4">
+        <div className="border-t border-border bg-card px-4 md:px-6 py-4">
           <div className="max-w-3xl mx-auto">
             {attachedFile && (
               <div className="space-y-2 mb-2">
@@ -637,9 +716,9 @@ export default function MirandaPage() {
         </div>
       </div>
 
-      {/* RIGHT PANEL */}
+      {/* RIGHT PANEL - hidden below xl (1280px) */}
       {rightPanelOpen && (
-        <div className="w-[300px] border-l border-border flex flex-col bg-card shrink-0">
+        <div className="hidden xl:flex w-[300px] border-l border-border flex-col bg-card shrink-0">
           <div className="px-4 py-4 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">Contexto & Ferramentas</h3>
           </div>
