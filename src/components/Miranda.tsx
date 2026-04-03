@@ -288,9 +288,7 @@ export function MirandaPanel({
                     segment.type === "chart" ? (
                       <MirandaChart key={si} data={segment.data} />
                     ) : (
-                      <div key={si} className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
-                        <ReactMarkdown>{segment.content}</ReactMarkdown>
-                      </div>
+                      <MirandaMarkdown key={si} content={segment.content} />
                     )
                   )}
                   {streaming && i === messages.length - 1 && <BlinkingCursor />}

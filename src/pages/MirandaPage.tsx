@@ -306,9 +306,7 @@ export default function MirandaPage() {
                       seg.type === "chart" ? (
                         <MirandaChart key={si} data={seg.data} />
                       ) : (
-                        <div key={si} className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
-                          <ReactMarkdown>{seg.content}</ReactMarkdown>
-                        </div>
+                        <MirandaMarkdown key={si} content={seg.content} />
                       )
                     )}
                     {streaming && i === mensagens.length - 1 && <BlinkingCursor />}
