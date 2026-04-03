@@ -9,6 +9,7 @@ import {
   Lock,
   Code2,
   Settings,
+  Building2,
   LogOut,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
