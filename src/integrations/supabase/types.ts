@@ -439,6 +439,7 @@ export type Database = {
           avatar_iniciais: string | null
           cargo: string | null
           created_at: string
+          foto_url: string | null
           id: string
           nome: string
           role: string
@@ -448,6 +449,7 @@ export type Database = {
           avatar_iniciais?: string | null
           cargo?: string | null
           created_at?: string
+          foto_url?: string | null
           id: string
           nome: string
           role?: string
@@ -457,6 +459,7 @@ export type Database = {
           avatar_iniciais?: string | null
           cargo?: string | null
           created_at?: string
+          foto_url?: string | null
           id?: string
           nome?: string
           role?: string
