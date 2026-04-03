@@ -464,6 +464,8 @@ export default function MirandaPage() {
                         <MirandaChart key={si} data={seg.data} />
                       ) : seg.type === "download" ? (
                         <DownloadCard key={si} filename={seg.data.filename} size={seg.data.size} url={seg.data.url} />
+                      ) : seg.type === "generate_pdf" ? (
+                        <PdfGeneratorCard key={si} data={seg.data} />
                       ) : (
                         <MirandaMarkdown key={si} content={seg.content} />
                       )
