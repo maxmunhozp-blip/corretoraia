@@ -607,46 +607,77 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
               </div>
 
               {uploading && <Progress value={progress} className="shrink-0 h-2 [&>div]:bg-brand" />}
+
+              {/* Celebration overlay */}
+              {step === "done" && (
+                <div className="shrink-0 rounded-lg border border-green-200 bg-green-50 p-5 relative overflow-hidden">
+                  <canvas ref={celebrationCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" />
+                  <div className="relative z-20 flex flex-col items-center gap-2 text-center">
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center animate-scale-in">
+                      <PartyPopper className="h-6 w-6 text-green-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-green-800 animate-fade-in">
+                      Tudo pronto! 🎉
+                    </p>
+                    <p className="text-xs text-green-600 animate-fade-in">
+                      {doneCount} arquivo{doneCount !== 1 ? "s" : ""} processado{doneCount !== 1 ? "s" : ""} com sucesso
+                      {errorCount > 0 && ` · ${errorCount} erro${errorCount !== 1 ? "s" : ""}`}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         <DialogFooter className="shrink-0 border-t border-border px-6 py-4">
-          <Button
-            variant="ghost"
-            onClick={() => { if (!uploading && !categorizing) { onOpenChange(false); reset(); } }}
-            disabled={uploading || categorizing}
-          >
-            Cancelar
-          </Button>
-          {step === "review" && !uploading && !categorizing && (
-            <Button variant="outline" onClick={reset}>
-              Trocar pasta
-            </Button>
-          )}
-          {step !== "select" && (
+          {step === "done" ? (
             <Button
-              onClick={handleUploadAll}
-              disabled={categorizedCount === 0 || uploading || categorizing}
+              onClick={() => { onOpenChange(false); reset(); }}
               className="bg-brand text-brand-foreground hover:bg-brand-hover"
             >
-              {categorizing ? (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
-                  IA categorizando...
-                </>
-              ) : uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Enviando {doneCount + errorCount + 1}/{files.length}...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Enviar {categorizedCount} arquivo{categorizedCount !== 1 ? "s" : ""} categorizados
-                </>
-              )}
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Concluir
             </Button>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => { if (!uploading && !categorizing) { onOpenChange(false); reset(); } }}
+                disabled={uploading || categorizing}
+              >
+                Cancelar
+              </Button>
+              {step === "review" && !uploading && !categorizing && (
+                <Button variant="outline" onClick={reset}>
+                  Trocar pasta
+                </Button>
+              )}
+              {step !== "select" && (
+                <Button
+                  onClick={handleUploadAll}
+                  disabled={categorizedCount === 0 || uploading || categorizing}
+                  className="bg-brand text-brand-foreground hover:bg-brand-hover"
+                >
+                  {categorizing ? (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                      IA categorizando...
+                    </>
+                  ) : uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enviando {doneCount + errorCount + 1}/{files.length}...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Enviar {categorizedCount} arquivo{categorizedCount !== 1 ? "s" : ""} categorizados
+                    </>
+                  )}
+                </Button>
+              )}
+            </>
           )}
         </DialogFooter>
       </DialogContent>
