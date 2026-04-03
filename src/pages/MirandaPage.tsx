@@ -189,7 +189,7 @@ export default function MirandaPage() {
   const [streaming, setStreaming] = useState(false);
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [hoveredConversa, setHoveredConversa] = useState<string | null>(null);
+  
   const [editingConversa, setEditingConversa] = useState<string | null>(null);
   const [editingTitulo, setEditingTitulo] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -200,8 +200,15 @@ export default function MirandaPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isFirstLoad = useRef(true);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isFirstLoad.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+      isFirstLoad.current = false;
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [mensagens, streaming]);
 
   const detectAction = (text: string) => {
@@ -426,9 +433,7 @@ export default function MirandaPage() {
             {conversas.map((c) => (
               <div
                 key={c.id}
-                onClick={() => { if (editingConversa !== c.id) carregarMensagens(c.id); }}
-                onMouseEnter={() => setHoveredConversa(c.id)}
-                onMouseLeave={() => setHoveredConversa(null)}
+                onClick={() => { if (editingConversa !== c.id) { isFirstLoad.current = true; carregarMensagens(c.id); } }}
                 className={`group relative flex items-center gap-2 rounded-lg px-3 py-2.5 cursor-pointer text-sm transition-colors duration-150 ${
                   conversaAtiva === c.id
                     ? "bg-[#F5EDEC] border-l-[3px] border-l-[#955251] text-foreground"
@@ -470,28 +475,30 @@ export default function MirandaPage() {
                     {formatDistanceToNow(new Date(c.updated_at || c.created_at), { addSuffix: true, locale: ptBR })}
                   </p>
                 </div>
-                {hoveredConversa === c.id && editingConversa !== c.id && (
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingConversa(c.id);
-                        setEditingTitulo(c.titulo);
-                      }}
-                      className="p-1 rounded hover:bg-muted transition-colors"
-                      title="Renomear"
-                    >
-                      <Pencil className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(c.id); }}
-                      className="p-1 rounded hover:bg-destructive/10 transition-colors"
-                      title="Deletar"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {editingConversa !== c.id && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingConversa(c.id);
+                          setEditingTitulo(c.titulo);
+                        }}
+                        className="p-1 rounded hover:bg-muted transition-colors"
+                        title="Renomear"
+                      >
+                        <Pencil className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(c.id); }}
+                        className="p-1 rounded hover:bg-destructive/10 transition-colors"
+                        title="Deletar"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
             {conversas.length === 0 && (

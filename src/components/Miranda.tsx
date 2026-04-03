@@ -170,13 +170,21 @@ export function MirandaPanel({
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [hoveredConversa, setHoveredConversa] = useState<string | null>(null);
+  
   const [pesquisaResult, setPesquisaResult] = useState<Record<string, any> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
+  const isFirstLoad = useRef(true);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isFirstLoad.current) {
+      // Instant scroll on first load / conversation switch
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+      isFirstLoad.current = false;
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [mensagens, streaming, currentAction]);
 
   // Reset suggestions when conversation changes
@@ -276,6 +284,7 @@ export function MirandaPanel({
   };
 
   const handleSelectConversa = (id: string) => {
+    isFirstLoad.current = true;
     carregarMensagens(id);
     setShowHistory(false);
     setShowSuggestions(false);
@@ -337,8 +346,6 @@ export function MirandaPanel({
                   <div
                     key={c.id}
                     onClick={() => handleSelectConversa(c.id)}
-                    onMouseEnter={() => setHoveredConversa(c.id)}
-                    onMouseLeave={() => setHoveredConversa(null)}
                     className={`group flex items-center gap-2 rounded-md px-3 py-2 cursor-pointer transition-colors text-xs ${
                       conversaAtiva === c.id
                         ? "bg-brand-light text-foreground"
@@ -352,14 +359,12 @@ export function MirandaPanel({
                         {format(new Date(c.created_at), "dd MMM, HH:mm", { locale: ptBR })}
                       </p>
                     </div>
-                    {hoveredConversa === c.id && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deletarConversa(c.id); }}
-                        className="p-0.5 rounded hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-3 w-3 text-destructive" />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deletarConversa(c.id); }}
+                      className="p-0.5 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                    >
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </button>
                   </div>
                 ))}
                 {conversas.length === 0 && (
@@ -380,7 +385,7 @@ export function MirandaPanel({
             <>
               {displayMessages.map((msg, i) =>
                 msg.role === "assistant" ? (
-                  <div key={msg.id || i} className="flex items-end gap-2 animate-msg-in">
+                  <div key={msg.id || i} className="flex items-end gap-2">
                     <div className="h-7 w-7 shrink-0 rounded-full bg-brand flex items-center justify-center text-[11px] font-bold text-brand-foreground">
                       M
                     </div>
@@ -412,7 +417,7 @@ export function MirandaPanel({
                     </div>
                   </div>
                 ) : (
-                  <div key={msg.id || i} className="flex justify-end animate-msg-in">
+                  <div key={msg.id || i} className="flex justify-end">
                     <div className="max-w-[85%] rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground leading-relaxed">
                       {msg.content}
                     </div>
