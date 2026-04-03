@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       id: authData.user.id,
       nome,
       cargo: cargo || null,
-      role: role || "corretor",
+      role: role || "vendedor",
       corretora_id: corretora_id || null,
       avatar_iniciais: initials,
       ativo: true,

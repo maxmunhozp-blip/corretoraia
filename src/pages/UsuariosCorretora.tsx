@@ -45,7 +45,7 @@ export default function UsuariosCorretora() {
     nome: "",
     email: "",
     cargo: "",
-    role: "corretor",
+    role: "vendedor",
     senha: "",
   });
 
