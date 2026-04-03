@@ -7,6 +7,7 @@ interface Profile {
   cargo: string | null;
   avatar_iniciais: string | null;
   role: string;
+  corretora_id: string | null;
 }
 
 interface AuthContextType {
