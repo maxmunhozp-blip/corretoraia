@@ -249,6 +249,7 @@ export default function UsuariosCorretora() {
                 }
                 className="bg-brand hover:bg-brand-hover text-white"
               >
+                {convidarMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 {convidarMutation.isPending ? "Convidando..." : "Convidar"}
               </Button>
             </div>
