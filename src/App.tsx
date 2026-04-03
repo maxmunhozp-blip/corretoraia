@@ -29,7 +29,7 @@ import MasterUsuarios from "./pages/master/MasterUsuarios";
 import MasterPlanos from "./pages/master/MasterPlanos";
 import MasterFinanceiro from "./pages/master/MasterFinanceiro";
 import UsuariosCorretora from "./pages/UsuariosCorretora";
-import Onboarding from "./pages/Onboarding";
+import Landing from "./pages/Landing";
 
 const queryClient = new QueryClient();
 
