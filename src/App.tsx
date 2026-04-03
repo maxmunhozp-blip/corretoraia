@@ -32,6 +32,7 @@ import UsuariosCorretora from "./pages/UsuariosCorretora";
 import Landing from "./pages/Landing";
 import Cadastro from "./pages/Cadastro";
 import Onboarding from "./pages/Onboarding";
+import PropostaPublica from "./pages/PropostaPublica";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ const App = () => (
                 <Route path="/master/configuracoes" element={<Configuracoes />} />
               </Route>
               <Route path="/ranking/tv" element={<ProtectedRoute><RankingTV /></ProtectedRoute>} />
+              <Route path="/p/:slug" element={<PropostaPublica />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ImpersonationProvider>

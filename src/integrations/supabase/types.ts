@@ -694,6 +694,87 @@ export type Database = {
           },
         ]
       }
+      propostas_interativas: {
+        Row: {
+          aceita_em: string | null
+          alternativas: Json | null
+          cliente_email: string | null
+          cliente_empresa: string | null
+          cliente_nome: string
+          cliente_telefone: string | null
+          corretora_id: string | null
+          created_at: string | null
+          criado_por: string | null
+          dados: Json
+          formato_padrao: string | null
+          id: string
+          plano_atual: Json | null
+          primeira_visualizacao_em: string | null
+          slug: string
+          status: string | null
+          ultima_visualizacao_em: string | null
+          valida_ate: string | null
+          visualizacoes: number | null
+        }
+        Insert: {
+          aceita_em?: string | null
+          alternativas?: Json | null
+          cliente_email?: string | null
+          cliente_empresa?: string | null
+          cliente_nome: string
+          cliente_telefone?: string | null
+          corretora_id?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          dados?: Json
+          formato_padrao?: string | null
+          id?: string
+          plano_atual?: Json | null
+          primeira_visualizacao_em?: string | null
+          slug: string
+          status?: string | null
+          ultima_visualizacao_em?: string | null
+          valida_ate?: string | null
+          visualizacoes?: number | null
+        }
+        Update: {
+          aceita_em?: string | null
+          alternativas?: Json | null
+          cliente_email?: string | null
+          cliente_empresa?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          corretora_id?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          dados?: Json
+          formato_padrao?: string | null
+          id?: string
+          plano_atual?: Json | null
+          primeira_visualizacao_em?: string | null
+          slug?: string
+          status?: string | null
+          ultima_visualizacao_em?: string | null
+          valida_ate?: string | null
+          visualizacoes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_interativas_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_interativas_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ranking_vendedores: {
         Row: {
           ativo: boolean
