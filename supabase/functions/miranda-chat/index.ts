@@ -712,6 +712,18 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
         return JSON.stringify({ sucesso: true, mensagem: `Alerta "${titulo}" criado com sucesso` });
       }
 
+      case "pesquisar_perfil_cliente": {
+        const { nome, cnpj, cidade, site } = args;
+        // Return a special marker that the frontend renders as a PesquisaClienteCard
+        return JSON.stringify({
+          __pesquisa_cliente: true,
+          nome,
+          cnpj: cnpj || undefined,
+          cidade: cidade || undefined,
+          site: site || undefined,
+        });
+      }
+
       case "gerar_proposta_pdf": {
         const conversationProposal = extractProposalContext(messages);
         const explicitArgs = compactObject({
