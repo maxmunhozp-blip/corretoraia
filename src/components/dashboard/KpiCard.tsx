@@ -27,7 +27,8 @@ export function KpiCard({
   index,
   children,
 }: KpiCardProps) {
-  const animatedValue = useCountUp(value, 1200, index * 100);
+  const idx = index ?? 0;
+  const animatedValue = useCountUp(value, 1200, idx * 100);
 
   return (
     <div
