@@ -26,7 +26,10 @@ export default function BaseConhecimento() {
         <h1 className="text-2xl font-bold text-foreground">Base de Conhecimento</h1>
         <div className="flex items-center gap-2">
           <Button onClick={() => setUploadOpen(true)} className="bg-brand text-brand-foreground hover:bg-brand-hover">
-            <Upload className="h-4 w-4 mr-2" /> Upload de documento
+            <Upload className="h-4 w-4 mr-2" /> Upload
+          </Button>
+          <Button onClick={() => setPastaOpen(true)} variant="outline" className="border-brand text-brand hover:bg-brand-light">
+            <FolderOpen className="h-4 w-4 mr-2" /> Upload de Pasta
           </Button>
           <Button variant="outline" onClick={() => setSearchOpen(true)} className="border-brand text-brand hover:bg-brand-light">
             <Globe className="h-4 w-4 mr-2" /> Buscar na internet
