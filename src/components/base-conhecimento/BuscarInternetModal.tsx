@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Globe } from "lucide-react";
 import { useOperadoras } from "@/hooks/usePropostas";
-import { useCreateDocumento } from "@/hooks/useDocumentos";
+import { useCreateConhecimento, useProcessarConhecimento } from "@/hooks/useBaseConhecimento";
 import { toast } from "sonner";
 
 interface Props {
@@ -35,7 +35,8 @@ export function BuscarInternetModal({ open, onOpenChange }: Props) {
   const [categoria, setCategoria] = useState("");
 
   const { data: operadoras } = useOperadoras();
-  const createDoc = useCreateDocumento();
+  const createDoc = useCreateConhecimento();
+  const processar = useProcessarConhecimento();
 
   const reset = () => { setQuery(""); setOperadoraId(""); setCategoria(""); };
 
@@ -45,14 +46,21 @@ export function BuscarInternetModal({ open, onOpenChange }: Props) {
       return;
     }
     try {
-      await createDoc.mutateAsync({
+      const doc = await createDoc.mutateAsync({
         titulo: query.trim(),
-        categoria: categoria || "outro",
+        tipo: "web",
+        categoria: categoria || "pesquisa_web",
         operadora_id: operadoraId || undefined,
-        tipo_arquivo: "web",
-        fonte_url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
         status: "processando",
       });
+
+      // Trigger processing in background
+      processar.mutate({
+        id: doc.id,
+        tipo: "web",
+        busca_web: query.trim(),
+      });
+
       toast.success("Pesquisa iniciada — a Miranda está buscando o conteúdo");
       onOpenChange(false);
       reset();
