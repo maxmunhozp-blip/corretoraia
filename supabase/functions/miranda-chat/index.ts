@@ -678,6 +678,20 @@ Regras para gráficos:
 - SEMPRE baseie os valores nos dados reais consultados — NUNCA invente números
 - O JSON deve estar em UMA ÚNICA LINHA dentro do bloco chart
 
+GERAÇÃO DE PDFs:
+Quando os dados retornados de uma tool tiverem o campo "__pdf_type", você DEVE incluir o JSON completo dos dados retornados em um bloco especial para o frontend gerar o PDF:
+
+\`\`\`generate_pdf
+{...o JSON completo retornado pela tool, incluindo __pdf_type, em UMA ÚNICA LINHA...}
+\`\`\`
+
+Regras para PDFs:
+- SEMPRE inclua o bloco generate_pdf quando receber dados com __pdf_type
+- O JSON deve estar em UMA ÚNICA LINHA dentro do bloco
+- Adicione uma mensagem contextual antes do bloco (ex: "Preparando seu relatório..." ou "Gerando PDF da proposta...")
+- Depois do bloco, adicione um resumo dos dados principais encontrados
+- Se a tool retornar erro, informe o usuário sem o bloco generate_pdf
+
 --- CONTEXTO ATUAL ---
 Data e hora: ${now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
 Usuário logado: ${userName}${userCargo ? ` (${userCargo})` : ""}
