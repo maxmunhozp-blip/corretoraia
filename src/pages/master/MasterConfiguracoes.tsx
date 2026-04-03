@@ -298,7 +298,7 @@ export default function MasterConfiguracoes() {
       "{{data_atual}}": new Date().toLocaleDateString("pt-BR"),
     };
     Object.entries(sampleData).forEach(([key, val]) => {
-      html = html.replaceAll(key, `<strong style="color:#955251">${val}</strong>`);
+      html = html.split(key).join(`<strong style="color:#955251">${val}</strong>`);
     });
     setPreviewContent(html);
     setPreviewModal(true);
