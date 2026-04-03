@@ -98,34 +98,69 @@ export function AppSidebar() {
             );
           })}
 
-          {showUsuarios && (
-            <NavLink
-              to="/configuracoes/usuarios"
-              className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                location.pathname === "/configuracoes/usuarios"
-                  ? "bg-brand-light text-brand"
-                  : "text-muted-foreground hover:bg-surface hover:translate-x-0.5"
-              }`}
-            >
-              <Users className="h-4 w-4 shrink-0" />
-              <span>Usuários</span>
-            </NavLink>
-          )}
-
-          {role === "master" && (
+          {/* Admin Corretora section */}
+          {role === "admin_corretora" && (
             <>
               <div className="my-3 border-t border-border" />
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                Configurações
+              </p>
               <NavLink
-                to="/master"
+                to="/configuracoes/usuarios"
                 className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                  location.pathname.startsWith("/master")
+                  location.pathname === "/configuracoes/usuarios"
                     ? "bg-brand-light text-brand"
                     : "text-muted-foreground hover:bg-surface hover:translate-x-0.5"
                 }`}
               >
-                <Shield className="h-4 w-4 shrink-0" />
-                <span>Painel Master</span>
+                <Users className="h-4 w-4 shrink-0" />
+                <span>Usuários</span>
               </NavLink>
+              <NavLink
+                to="/configuracoes/corretora"
+                className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/configuracoes/corretora"
+                    ? "bg-brand-light text-brand"
+                    : "text-muted-foreground hover:bg-surface hover:translate-x-0.5"
+                }`}
+              >
+                <Building2 className="h-4 w-4 shrink-0" />
+                <span>Minha Corretora</span>
+              </NavLink>
+            </>
+          )}
+
+          {/* Master section */}
+          {role === "master" && (
+            <>
+              <div className="my-3 border-t border-border" />
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                Master
+              </p>
+              {[
+                { title: "Painel Master", url: "/master", icon: Shield },
+                { title: "Corretoras", url: "/master/corretoras", icon: Building2 },
+                { title: "Todos os Usuários", url: "/master/usuarios", icon: Users },
+                { title: "Planos", url: "/master/planos", icon: CreditCard },
+              ].map((item) => {
+                const active = item.url === "/master"
+                  ? location.pathname === "/master"
+                  : location.pathname.startsWith(item.url);
+                return (
+                  <NavLink
+                    key={item.url}
+                    to={item.url}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? "bg-brand-light text-brand"
+                        : "text-muted-foreground hover:bg-surface hover:translate-x-0.5"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{item.title}</span>
+                  </NavLink>
+                );
+              })}
             </>
           )}
         </nav>
