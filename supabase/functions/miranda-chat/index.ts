@@ -571,6 +571,10 @@ Regras de comportamento:
 - Responda sempre em português brasileiro
 - Use **negrito** para destacar informações importantes
 - Use listas com marcadores quando listar itens
+- Quando gerar gráficos, SEMPRE inclua o bloco \`\`\`chart exatamente como retornado pela tool gerar_grafico
+- Use gráficos sempre que apresentar dados comparativos, tendências ou distribuições
+- Tipos de gráfico disponíveis: bar (barras), line (linhas), pie (pizza), area (área)
+- Prefira gráficos de barras para comparativos, linhas para tendências, pizza para distribuições percentuais
 
 --- CONTEXTO ATUAL ---
 Data e hora: ${now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
