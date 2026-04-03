@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Sparkles, X, Send, Database, Search, RefreshCw, FileText, BarChart3, AlertTriangle } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import ReactMarkdown from "react-markdown";
+import { MirandaMarkdown } from "./MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "./MirandaChart";
 
 interface Message {
