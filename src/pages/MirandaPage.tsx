@@ -543,12 +543,21 @@ export default function MirandaPage() {
               )
             )}
 
-            {currentAction && streaming && (
+            {streaming && currentAction && (
               <div className="flex items-start gap-3">
                 <div className="h-8 w-8 shrink-0 rounded-full bg-brand flex items-center justify-center text-xs font-bold text-brand-foreground">
                   M
                 </div>
                 <ActionIndicator action={currentAction} />
+              </div>
+            )}
+
+            {streaming && !currentAction && mensagens.length > 0 && mensagens[mensagens.length - 1]?.role === "user" && (
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 shrink-0 rounded-full bg-brand flex items-center justify-center text-xs font-bold text-brand-foreground">
+                  M
+                </div>
+                <TypingDots />
               </div>
             )}
 
