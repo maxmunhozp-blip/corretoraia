@@ -361,14 +361,12 @@ export function MirandaPanel({
                         {format(new Date(c.created_at), "dd MMM, HH:mm", { locale: ptBR })}
                       </p>
                     </div>
-                    {hoveredConversa === c.id && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deletarConversa(c.id); }}
-                        className="p-0.5 rounded hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-3 w-3 text-destructive" />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deletarConversa(c.id); }}
+                      className="p-0.5 rounded hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                    >
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </button>
                   </div>
                 ))}
                 {conversas.length === 0 && (
