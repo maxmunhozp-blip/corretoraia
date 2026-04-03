@@ -11,6 +11,7 @@ import { MirandaMarkdown } from "@/components/MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "@/components/MirandaChart";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DownloadCard } from "@/components/miranda/DownloadCard";
+import { PdfGeneratorCard } from "@/components/miranda/PdfGeneratorCard";
 import { PdfUploadPreview, PdfUploadBubble } from "@/components/miranda/PdfUploadPreview";
 import { gerarRelatorioComparativo, DadosComparativo, TemplateStyle } from "@/lib/gerarRelatorioComparativo";
 import { format } from "date-fns";
@@ -463,6 +464,8 @@ export default function MirandaPage() {
                         <MirandaChart key={si} data={seg.data} />
                       ) : seg.type === "download" ? (
                         <DownloadCard key={si} filename={seg.data.filename} size={seg.data.size} url={seg.data.url} />
+                      ) : seg.type === "generate_pdf" ? (
+                        <PdfGeneratorCard key={si} data={seg.data} />
                       ) : (
                         <MirandaMarkdown key={si} content={seg.content} />
                       )
