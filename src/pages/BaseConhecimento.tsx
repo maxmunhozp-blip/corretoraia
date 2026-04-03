@@ -15,6 +15,7 @@ export default function BaseConhecimento() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("todos");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [pastaOpen, setPastaOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const { data: documentos, isLoading } = useBaseConhecimento({ search, categoria: activeTab });
