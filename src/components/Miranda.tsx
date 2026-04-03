@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Sparkles, X, Send } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   role: "assistant" | "user";
@@ -54,6 +56,7 @@ async function streamChat(
   onDelta: (text: string) => void,
   onDone: () => void,
   onError: (msg: string) => void,
+  extra?: { usuario_id?: string; contexto_pagina?: string },
 ) {
   try {
     const resp = await fetch(CHAT_URL, {
@@ -62,7 +65,11 @@ async function streamChat(
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({
+        messages,
+        usuario_id: extra?.usuario_id,
+        contexto_pagina: extra?.contexto_pagina,
+      }),
     });
 
     if (!resp.ok) {
@@ -119,6 +126,8 @@ export function MirandaPanel({
   const [typing, setTyping] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -163,6 +172,7 @@ export function MirandaPanel({
           { role: "assistant", content: `⚠️ ${errorMsg}` },
         ]);
       },
+      { usuario_id: user?.id, contexto_pagina: location.pathname },
     );
   };
 
