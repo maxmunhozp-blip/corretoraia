@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       .toUpperCase();
 
     async function createProfileForUser(userId: string) {
-      const { error: profileError } = await adminClient.from("profiles").insert({
+      const { error: profileError } = await adminClient.from("profiles").upsert({
         id: userId,
         nome,
         cargo: cargo || null,
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
         corretora_id: corretora_id || null,
         avatar_iniciais: initials,
         ativo: true,
-      });
+      }, { onConflict: "id" });
 
       return profileError;
     }
