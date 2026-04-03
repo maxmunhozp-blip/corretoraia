@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
 
-interface PageWrapperProps {
+export interface PageWrapperProps {
   title: string;
+  subtitle?: string;
   children?: ReactNode;
 }
 
