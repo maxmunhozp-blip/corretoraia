@@ -14,6 +14,7 @@ import { DownloadCard } from "@/components/miranda/DownloadCard";
 import { PdfGeneratorCard } from "@/components/miranda/PdfGeneratorCard";
 import { PdfUploadPreview, PdfUploadBubble } from "@/components/miranda/PdfUploadPreview";
 import { PesquisaClienteCard } from "@/components/miranda/PesquisaClienteCard";
+import { PropostaCard } from "@/components/miranda/PropostaCard";
 import { gerarRelatorioComparativo, DadosComparativo, TemplateStyle } from "@/lib/gerarRelatorioComparativo";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -522,6 +523,8 @@ export default function MirandaPage() {
                         <PdfGeneratorCard key={si} data={seg.data} />
                       ) : seg.type === "pesquisa_cliente" ? (
                         <PesquisaClienteCard key={si} data={seg.data} />
+                      ) : seg.type === "proposta_criada" ? (
+                        <PropostaCard key={si} slug={seg.data.slug} clienteNome={seg.data.cliente_nome} linkPublico={seg.data.link} pdfUrl={seg.data.pdf_url} pdfNome={seg.data.pdf_nome} economiaMensal={seg.data.economia_mensal} economiaPercentual={seg.data.economia_percentual} />
                       ) : (
                         <MirandaMarkdown key={si} content={seg.content} />
                       )

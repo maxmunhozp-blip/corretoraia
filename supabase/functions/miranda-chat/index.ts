@@ -33,6 +33,25 @@ function getForcedToolChoice(latestUserMessage: string) {
       "gere o relatório",
     ].some((term) => text.includes(term));
 
+  const hasPropostaInterativaIntent = [
+    "criar proposta interativa",
+    "proposta interativa",
+    "gerar link",
+    "link da proposta",
+    "enviar proposta",
+    "montar proposta",
+    "crie a proposta para",
+    "crie uma proposta para",
+    "gere a proposta para",
+    "gere uma proposta para",
+    "criar proposta para",
+    "gerar proposta para",
+  ].some((term) => text.includes(term));
+
+  if (hasPropostaInterativaIntent) {
+    return { type: "function", function: { name: "criar_proposta_interativa" } };
+  }
+
   if (!hasPdfIntent) return null;
 
   if (text.includes("relatorio executivo") || text.includes("relatorio do dia") || text.includes("relatório") || text.includes("relatorio")) {
@@ -394,6 +413,67 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "criar_proposta_interativa",
+      description: "Cria uma proposta interativa real no sistema com link público compartilhável. Use quando o usuário pedir para criar proposta, gerar link de proposta, ou enviar proposta para um cliente. Requer dados do cliente, plano atual e alternativas.",
+      parameters: {
+        type: "object",
+        properties: {
+          cliente_nome: { type: "string", description: "Nome do cliente" },
+          cliente_empresa: { type: "string", description: "Nome da empresa do cliente" },
+          cliente_email: { type: "string", description: "E-mail do cliente" },
+          cliente_telefone: { type: "string", description: "Telefone do cliente" },
+          vidas: { type: "number", description: "Número de vidas/beneficiários" },
+          plano_atual: {
+            type: "object",
+            description: "Plano atual do cliente",
+            properties: {
+              nome: { type: "string" },
+              operadora: { type: "string" },
+              valor_mensal: { type: "number" },
+              acomodacao: { type: "string" },
+              abrangencia: { type: "string" },
+              coparticipacao: { type: "boolean" },
+              vidas: { type: "number" },
+            },
+          },
+          alternativas: {
+            type: "array",
+            description: "Array de planos alternativos propostos",
+            items: {
+              type: "object",
+              properties: {
+                nome: { type: "string" },
+                operadora: { type: "string" },
+                valor_mensal: { type: "number" },
+                acomodacao: { type: "string" },
+                abrangencia: { type: "string" },
+                coparticipacao: { type: "boolean" },
+                reembolso: { type: "boolean" },
+                recomendado: { type: "boolean" },
+                descricao: { type: "string" },
+              },
+            },
+          },
+          beneficiarios: {
+            type: "array",
+            description: "Lista de beneficiários com nome, idade e valores por plano",
+            items: {
+              type: "object",
+              properties: {
+                nome: { type: "string" },
+                idade: { type: "number" },
+                valores: { type: "object" },
+              },
+            },
+          },
+        },
+        required: ["cliente_nome", "alternativas"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "salvar_memoria",
       description: "Salva uma nova memória/aprendizado da Miranda. Use quando o usuário der feedback positivo ou negativo sobre algo (design, tom, layout, etc), quando aprender uma preferência da corretora, ou quando quiser registrar algo para lembrar depois.",
       parameters: {
@@ -418,7 +498,10 @@ const tools = [
 ];
 
 // Tool implementations
-async function executeTool(name: string, args: any, supabase: any, messages: { role: string; content: string }[] = []): Promise<string> {
+async function executeTool(name: string, args: any, supabase: any, messages: { role: string; content: string }[] = [], extra?: { corretoraId?: string | null; corretoraData?: Record<string, any> | null; usuario_id?: string }): Promise<string> {
+  const corretoraId = extra?.corretoraId;
+  const corretoraData = extra?.corretoraData;
+  const usuario_id = extra?.usuario_id;
   try {
     switch (name) {
       case "buscar_cliente": {
@@ -913,6 +996,88 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
         });
       }
 
+      case "criar_proposta_interativa": {
+        const {
+          cliente_nome, cliente_empresa, cliente_email, cliente_telefone,
+          vidas, plano_atual, alternativas = [], beneficiarios,
+        } = args;
+
+        if (!cliente_nome || !alternativas.length) {
+          return JSON.stringify({ erro: "Dados insuficientes. Preciso do nome do cliente e pelo menos uma alternativa de plano." });
+        }
+
+        // Get corretora data
+        let corretora: Record<string, any> = {};
+        if (corretoraData) {
+          corretora = {
+            nome: corretoraData.nome,
+            telefone: corretoraData.telefone,
+            email: corretoraData.email,
+            site: corretoraData.site,
+            cidade: corretoraData.cidade,
+            estado: corretoraData.estado,
+            cor_primaria: corretoraData.cor_primaria,
+            cor_secundaria: corretoraData.cor_secundaria,
+            logo_url: corretoraData.logo_url,
+          };
+        }
+
+        // Build dados object
+        const dadosProposta = compactObject({
+          corretora,
+          vidas,
+          beneficiarios,
+          plano_atual: plano_atual || undefined,
+          alternativas,
+        });
+
+        // Insert into propostas_interativas (slug is auto-generated by trigger)
+        const insertPayload: Record<string, any> = {
+          cliente_nome,
+          cliente_empresa: cliente_empresa || null,
+          cliente_email: cliente_email || null,
+          cliente_telefone: cliente_telefone || null,
+          dados: dadosProposta,
+          plano_atual: plano_atual || null,
+          alternativas: alternativas,
+          status: "ativa",
+          formato_padrao: "interativo",
+          slug: "temp", // Will be overridden by trigger
+        };
+        if (corretoraId) insertPayload.corretora_id = corretoraId;
+        if (usuario_id) insertPayload.criado_por = usuario_id;
+
+        const { data: inserted, error: insertError } = await supabase
+          .from("propostas_interativas")
+          .insert(insertPayload)
+          .select("id, slug")
+          .single();
+
+        if (insertError) {
+          console.error("Insert proposta error:", insertError);
+          return JSON.stringify({ erro: `Erro ao criar proposta: ${insertError.message}` });
+        }
+
+        const slug = inserted.slug;
+        const link = `/p/${slug}`;
+
+        // Calculate economy
+        const planoAtualValor = plano_atual?.valor_mensal || 0;
+        const melhorAlternativa = alternativas.reduce((best: any, alt: any) =>
+          (alt.valor_mensal || 0) < (best?.valor_mensal || Infinity) ? alt : best, alternativas[0]);
+        const economiaMensal = planoAtualValor > 0 ? planoAtualValor - (melhorAlternativa?.valor_mensal || 0) : 0;
+        const economiaPercentual = planoAtualValor > 0 ? (economiaMensal / planoAtualValor) * 100 : 0;
+
+        return JSON.stringify({
+          __proposta_criada: true,
+          slug,
+          link,
+          id: inserted.id,
+          cliente_nome,
+          economia_mensal: economiaMensal > 0 ? economiaMensal : undefined,
+          economia_percentual: economiaPercentual > 0 ? Number(economiaPercentual.toFixed(2)) : undefined,
+        });
+      }
 
       case "salvar_memoria": {
         const { tipo, titulo, conteudo } = args;
@@ -1091,6 +1256,13 @@ REGRA CRÍTICA — BOTÃO DE DOWNLOAD:
 - NUNCA invente links, caminhos de arquivo ou URLs. O frontend gera o PDF localmente a partir dos dados do bloco generate_pdf.
 - Se o usuário mencionar uma proposta específica, use gerar_proposta_pdf com o nome do cliente. Se pedir relatório, use gerar_relatorio_executivo.
 
+CRIAÇÃO DE PROPOSTA INTERATIVA:
+- Quando o usuário pedir para "criar proposta", "gerar proposta interativa", "enviar proposta para o cliente", "montar proposta", use a tool criar_proposta_interativa.
+- Esta tool cria um registro REAL no banco de dados com um link público compartilhável (/p/slug).
+- Passe TODOS os dados disponíveis: cliente_nome, plano_atual, alternativas com valores reais, beneficiários.
+- NUNCA descreva o link em texto — o frontend renderiza automaticamente um card com o link e botões.
+- SEMPRE que tiver dados suficientes (nome do cliente + pelo menos uma alternativa), use esta tool em vez de apenas descrever o que faria.
+
 PESQUISA DE PERFIL DE CLIENTE:
 Quando os dados retornados de uma tool tiverem o campo "__pesquisa_cliente", você DEVE incluir o JSON em um bloco especial:
 
@@ -1170,6 +1342,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
     let toolResultsContext = "";
     let pdfPayload: Record<string, any> | null = null;
     let pesquisaPayload: Record<string, any> | null = null;
+    let propostaCriadaPayload: Record<string, any> | null = null;
 
     if (toolMessage?.tool_calls?.length) {
       const results: string[] = [];
@@ -1182,7 +1355,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
         } catch { /* empty args */ }
 
         console.log(`Executing tool: ${fnName}`, fnArgs);
-        const result = await executeTool(fnName, fnArgs, supabase, messages);
+        const result = await executeTool(fnName, fnArgs, supabase, messages, { corretoraId, corretoraData, usuario_id });
         console.log(`Tool result length: ${result.length}`);
         results.push(`[Resultado de ${fnName}]: ${result}`);
 
@@ -1194,6 +1367,9 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
           if (parsedResult?.__pesquisa_cliente) {
             pesquisaPayload = parsedResult;
           }
+          if (parsedResult?.__proposta_criada) {
+            propostaCriadaPayload = parsedResult;
+          }
         } catch {
           // ignore non-json tool outputs
         }
@@ -1201,6 +1377,32 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
       toolResultsContext = "\n\n--- DADOS CONSULTADOS ---\n" + results.join("\n\n");
       console.log(`Tool results context length: ${toolResultsContext.length}`);
+    }
+
+    if (propostaCriadaPayload) {
+      const p = propostaCriadaPayload;
+      const baseUrl = Deno.env.get("SITE_URL") || "";
+      const fullLink = baseUrl ? `${baseUrl}/p/${p.slug}` : `/p/${p.slug}`;
+      const propostaJson = JSON.stringify({
+        slug: p.slug,
+        link: fullLink,
+        cliente_nome: p.cliente_nome,
+        economia_mensal: p.economia_mensal,
+        economia_percentual: p.economia_percentual,
+      });
+
+      const economiaPart = p.economia_mensal > 0
+        ? `\n\n💰 **Economia projetada:** R$ ${Number(p.economia_mensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês (${Number(p.economia_percentual).toFixed(1)}%)`
+        : "";
+
+      // If we also have a PDF payload, include it
+      let pdfBlock = "";
+      if (pdfPayload) {
+        pdfBlock = `\n\n\`\`\`generate_pdf\n${JSON.stringify(pdfPayload)}\n\`\`\``;
+      }
+
+      const msg = `✅ **Proposta criada com sucesso para ${p.cliente_nome}!**${economiaPart}\n\nO link da proposta interativa está pronto para envio ao cliente.\n\n\`\`\`proposta_criada\n${propostaJson}\n\`\`\`${pdfBlock}`;
+      return streamTextAsSse(msg);
     }
 
     if (pdfPayload) {

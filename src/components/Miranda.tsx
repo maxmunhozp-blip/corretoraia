@@ -9,6 +9,7 @@ import { MirandaChart, parseMessageWithCharts } from "./MirandaChart";
 import { DownloadCard } from "./miranda/DownloadCard";
 import { PdfGeneratorCard } from "./miranda/PdfGeneratorCard";
 import { PesquisaClienteCard } from "./miranda/PesquisaClienteCard";
+import { PropostaCard } from "./miranda/PropostaCard";
 import { ScrollArea } from "./ui/scroll-area";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -401,6 +402,8 @@ export function MirandaPanel({
                           } />
                         ) : segment.type === "pesquisa_cliente" ? (
                           <PesquisaClienteCard key={si} data={segment.data} onResult={(r) => setPesquisaResult(r)} />
+                        ) : segment.type === "proposta_criada" ? (
+                          <PropostaCard key={si} slug={segment.data.slug} clienteNome={segment.data.cliente_nome} linkPublico={segment.data.link} pdfUrl={segment.data.pdf_url} pdfNome={segment.data.pdf_nome} economiaMensal={segment.data.economia_mensal} economiaPercentual={segment.data.economia_percentual} />
                         ) : (
                           <MirandaMarkdown key={si} content={segment.content} />
                         )
