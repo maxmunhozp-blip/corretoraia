@@ -79,92 +79,105 @@ export default function Propostas() {
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-5">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="enviada">Enviada</SelectItem>
-            <SelectItem value="em_analise">Em análise</SelectItem>
-            <SelectItem value="pendencia">Pendência</SelectItem>
-            <SelectItem value="aprovada">Aprovada</SelectItem>
-            <SelectItem value="cancelada">Cancelada</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={responsavelFilter} onValueChange={setResponsavelFilter}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Responsável" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {(profiles || []).map((p) => (
-              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Tabs defaultValue="todas" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="todas">Todas</TabsTrigger>
+          <TabsTrigger value="interativas">Interativas</TabsTrigger>
+        </TabsList>
 
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-surface hover:bg-surface">
-              <TableHead>Cliente</TableHead>
-              <TableHead>Operadora</TableHead>
-              <TableHead>Vidas</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Responsável</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              [...Array(5)].map((_, i) => (
-                <TableRow key={i}>
-                  {[...Array(8)].map((_, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                  ))}
+        <TabsContent value="todas">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar por nome..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="enviada">Enviada</SelectItem>
+                <SelectItem value="em_analise">Em análise</SelectItem>
+                <SelectItem value="pendencia">Pendência</SelectItem>
+                <SelectItem value="aprovada">Aprovada</SelectItem>
+                <SelectItem value="cancelada">Cancelada</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={responsavelFilter} onValueChange={setResponsavelFilter}>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Responsável" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {(profiles || []).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-surface hover:bg-surface">
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Operadora</TableHead>
+                  <TableHead>Vidas</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))
-            ) : propostas && propostas.length > 0 ? (
-              propostas.map((p, i) => (
-                <TableRow key={p.id} className="hover:bg-surface transition-colors duration-150 opacity-0"
-                  style={{ animation: `staggerIn 0.35s ease-out ${i * 60}ms forwards` }}>
-                  <TableCell className="font-medium text-foreground">{p.cliente_nome}</TableCell>
-                  <TableCell>{(p.operadoras as any)?.nome || "—"}</TableCell>
-                  <TableCell>{p.vidas}</TableCell>
-                  <TableCell>{p.valor_estimado ? `R$ ${Number(p.valor_estimado).toLocaleString("pt-BR")}` : "—"}</TableCell>
-                  <TableCell>{(p.profiles as any)?.nome || "—"}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusStyles[p.status] || ""}`}>
-                      {statusLabels[p.status] || p.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{format(new Date(p.created_at), "dd/MM/yyyy")}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="p-1 rounded hover:bg-surface transition-colors"><Eye className="h-4 w-4 text-muted-foreground" /></button>
-                      <button className="p-1 rounded hover:bg-surface transition-colors"><Pencil className="h-4 w-4 text-muted-foreground" /></button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <FileX className="h-8 w-8" />
-                    <p className="text-sm">Nenhuma proposta encontrada.</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      {[...Array(8)].map((_, j) => (
+                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : propostas && propostas.length > 0 ? (
+                  propostas.map((p, i) => (
+                    <TableRow key={p.id} className="hover:bg-surface transition-colors duration-150 opacity-0"
+                      style={{ animation: `staggerIn 0.35s ease-out ${i * 60}ms forwards` }}>
+                      <TableCell className="font-medium text-foreground">{p.cliente_nome}</TableCell>
+                      <TableCell>{(p.operadoras as any)?.nome || "—"}</TableCell>
+                      <TableCell>{p.vidas}</TableCell>
+                      <TableCell>{p.valor_estimado ? `R$ ${Number(p.valor_estimado).toLocaleString("pt-BR")}` : "—"}</TableCell>
+                      <TableCell>{(p.profiles as any)?.nome || "—"}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusStyles[p.status] || ""}`}>
+                          {statusLabels[p.status] || p.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{format(new Date(p.created_at), "dd/MM/yyyy")}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button className="p-1 rounded hover:bg-surface transition-colors"><Eye className="h-4 w-4 text-muted-foreground" /></button>
+                          <button className="p-1 rounded hover:bg-surface transition-colors"><Pencil className="h-4 w-4 text-muted-foreground" /></button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <FileX className="h-8 w-8" />
+                        <p className="text-sm">Nenhuma proposta encontrada.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="interativas">
+          <PropostasInterativasTab />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-lg">
