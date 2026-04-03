@@ -229,7 +229,11 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
       );
 
       try {
-        const path = `pasta/${Date.now()}_${f.file.name}`;
+        const sanitizedName = f.file.name
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-zA-Z0-9._-]/g, "_")
+          .replace(/_+/g, "_");
+        const path = `pasta/${Date.now()}_${sanitizedName}`;
         const publicUrl = await uploadFile.mutateAsync({ file: f.file, path });
 
         const doc = await createDoc.mutateAsync({
