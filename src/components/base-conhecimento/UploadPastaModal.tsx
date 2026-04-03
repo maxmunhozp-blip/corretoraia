@@ -212,7 +212,6 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
           for (const entry of entries) {
             if (entry.isFile) {
               const file: File = await new Promise((res) => entry.file((f: File) => {
-                // Attach relative path manually
                 Object.defineProperty(f, "webkitRelativePath", {
                   value: `${basePath}/${entry.name}`,
                   writable: false,
@@ -220,13 +219,14 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
                 res(f);
               }));
               allFiles.push(file);
+              setScanStats((prev) => ({ ...prev, files: prev.files + 1 }));
             } else if (entry.isDirectory) {
+              setScanStats((prev) => ({ ...prev, folders: prev.folders + 1 }));
               const subFiles = await readAllEntries(entry, `${basePath}/${entry.name}`);
               allFiles.push(...subFiles);
             }
           }
 
-          // Chrome returns entries in batches of 100, so keep reading
           readBatch();
         });
       };
