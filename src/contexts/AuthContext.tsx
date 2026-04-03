@@ -10,10 +10,18 @@ interface Profile {
   corretora_id: string | null;
 }
 
+interface CorretoraTheme {
+  cor_primaria: string | null;
+  cor_secundaria: string | null;
+  nome: string;
+  logo_url: string | null;
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  corretoraTheme: CorretoraTheme | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
