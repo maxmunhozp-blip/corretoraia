@@ -126,6 +126,8 @@ export function MirandaPanel({
   const [typing, setTyping] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
