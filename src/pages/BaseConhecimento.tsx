@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageWrapper } from "@/components/PageWrapper";
-import { Upload, Globe, Search, BookOpen } from "lucide-react";
+import { Upload, Globe, Search, BookOpen, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useBaseConhecimento } from "@/hooks/useBaseConhecimento";
 import { DocumentoCard } from "@/components/base-conhecimento/DocumentoCard";
 import { UploadDocumentoModal } from "@/components/base-conhecimento/UploadDocumentoModal";
+import { UploadPastaModal } from "@/components/base-conhecimento/UploadPastaModal";
 import { BuscarInternetModal } from "@/components/base-conhecimento/BuscarInternetModal";
 
 export default function BaseConhecimento() {
