@@ -1,22 +1,17 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { PropostaCompleta, PlanoOfertado, CorretoraInfo } from "./types";
+import { buildBrandPalette, type BrandPalette } from "../pdf/brandColors";
 
 const PAGE_W = 210;
 const PAGE_H = 297;
 const M = 15;
 const CW = PAGE_W - M * 2;
 
-const MARSALA: [number, number, number] = [149, 82, 81];
-const MARSALA_DARK: [number, number, number] = [122, 63, 62];
-const CREAM: [number, number, number] = [245, 237, 236];
-const SURFACE: [number, number, number] = [248, 248, 248];
+// Palette is built per-generation based on corretora colors
+let P: BrandPalette;
+
 const WHITE: [number, number, number] = [255, 255, 255];
-const TEXT_DARK: [number, number, number] = [24, 24, 27];
-const TEXT_BODY: [number, number, number] = [63, 63, 70];
-const TEXT_MUTED: [number, number, number] = [113, 113, 122];
-const BORDER: [number, number, number] = [228, 228, 231];
-const GREEN: [number, number, number] = [22, 163, 74];
 
 function safe(v?: string | number | null): string {
   if (v === null || v === undefined || v === "") return "—";
