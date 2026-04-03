@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { FileText, Globe, Image as ImageIcon, Download, X, ExternalLink, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
+import { FileText, Globe, Image as ImageIcon, Download, X, ExternalLink, Mail, Send, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 const categoriaLabels: Record<string, string> = {
   regras_comerciais: "Regras Comerciais",
