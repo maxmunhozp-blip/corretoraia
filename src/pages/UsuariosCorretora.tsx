@@ -111,7 +111,7 @@ export default function UsuariosCorretora() {
     onSuccess: (senha) => {
       toast.success(`Usuário convidado. Senha: ${senha}`);
       setOpen(false);
-      setForm({ nome: "", email: "", cargo: "", role: "corretor", senha: "" });
+      setForm({ nome: "", email: "", cargo: "", role: "vendedor", senha: "" });
       queryClient.invalidateQueries({
         queryKey: ["corretora-usuarios"],
       });
