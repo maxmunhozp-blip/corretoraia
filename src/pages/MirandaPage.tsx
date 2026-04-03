@@ -202,7 +202,7 @@ export default function MirandaPage() {
       setCurrentAction("gerando_pdf");
 
       // Generate PDF client-side
-      const pdfBlob = gerarRelatorioComparativo(dados);
+      const pdfBlob = gerarRelatorioComparativo(dados, selectedTemplate);
       const safeRef = dados.data_referencia
         .replace(/\//g, "_")
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
