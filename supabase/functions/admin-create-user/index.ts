@@ -53,6 +53,42 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
+
+    // Handle password reset action
+    if (body.action === "reset-password") {
+      const { user_id, password } = body;
+      if (!user_id || !password) {
+        return respondFormError("user_id e password são obrigatórios");
+      }
+
+      if (callerProfile.role !== "master" && callerProfile.role !== "admin_corretora") {
+        return respond({ error: "Sem permissão" }, 403);
+      }
+
+      // If admin_corretora, verify user belongs to same corretora
+      if (callerProfile.role === "admin_corretora") {
+        const { data: targetProfile } = await adminClient
+          .from("profiles")
+          .select("corretora_id")
+          .eq("id", user_id)
+          .single();
+
+        if (!targetProfile || targetProfile.corretora_id !== callerProfile.corretora_id) {
+          return respond({ error: "Sem permissão para este usuário" }, 403);
+        }
+      }
+
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(user_id, {
+        password,
+      });
+
+      if (updateError) {
+        return respondFormError(updateError.message || "Erro ao redefinir senha");
+      }
+
+      return respond({ success: true });
+    }
+
     const { email, password, nome, cargo, role, corretora_id } = body;
 
     if (!email || !password || !nome) {
