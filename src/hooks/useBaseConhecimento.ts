@@ -12,7 +12,7 @@ export function useBaseConhecimento(filters: KnowledgeFilters) {
     queryFn: async () => {
       let query = supabase
         .from("base_conhecimento" as any)
-        .select("*, operadoras:operadora_id(nome), conteudo_extraido, descricao")
+        .select("*, operadoras:operadora_id(nome)")
         .order("created_at", { ascending: false });
 
       if (filters.search) {
