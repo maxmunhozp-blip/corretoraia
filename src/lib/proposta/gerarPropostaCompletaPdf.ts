@@ -474,7 +474,7 @@ function drawProximosPassosPage(doc: jsPDF, data: PropostaCompleta) {
   doc.setTextColor(...WHITE);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("Pronto para cuidar da sua saúde?", PAGE_W / 2, y + 12, { align: "center" });
+  doc.text(pers?.cta_personalizado || "Pronto para cuidar da sua saúde?", PAGE_W / 2, y + 12, { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text("Entre em contato agora e tire suas dúvidas sem compromisso.", PAGE_W / 2, y + 20, { align: "center" });
