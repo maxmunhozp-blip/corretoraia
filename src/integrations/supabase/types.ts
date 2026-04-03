@@ -671,6 +671,47 @@ export type Database = {
         }
         Relationships: []
       }
+      pesquisa_cliente_cache: {
+        Row: {
+          chave_busca: string
+          cnpj: string | null
+          corretora_id: string | null
+          criado_em: string
+          expira_em: string
+          id: string
+          nome_empresa: string
+          resultado: Json
+        }
+        Insert: {
+          chave_busca: string
+          cnpj?: string | null
+          corretora_id?: string | null
+          criado_em?: string
+          expira_em?: string
+          id?: string
+          nome_empresa: string
+          resultado: Json
+        }
+        Update: {
+          chave_busca?: string
+          cnpj?: string | null
+          corretora_id?: string | null
+          criado_em?: string
+          expira_em?: string
+          id?: string
+          nome_empresa?: string
+          resultado?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisa_cliente_cache_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos: {
         Row: {
           ativo: boolean | null

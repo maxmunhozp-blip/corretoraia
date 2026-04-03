@@ -172,6 +172,9 @@ export function PesquisaClienteCard({ data, onResult }: PesquisaClienteCardProps
             <p className="text-sm font-semibold text-foreground">Perfil identificado</p>
             <p className="text-[10px] text-muted-foreground">
               Fontes: {result.fontes?.join(", ") || "IA"}
+              {(result as any)._from_cache && (
+                <span className="ml-1 text-brand"> • cache</span>
+              )}
             </p>
           </div>
           <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />

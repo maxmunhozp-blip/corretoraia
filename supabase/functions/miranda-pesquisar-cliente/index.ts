@@ -1,10 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+/* ── Supabase admin client ── */
+function getSupabaseAdmin() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+}
+
+/* ── Build a cache key from search params ── */
+function buildCacheKey(nome: string, cnpj?: string): string {
+  const normalized = nome.trim().toLowerCase().replace(/\s+/g, " ");
+  const cnpjClean = cnpj ? cnpj.replace(/\D/g, "") : "";
+  return cnpjClean ? `${normalized}::${cnpjClean}` : normalized;
+}
 
 /* ── DuckDuckGo HTML search ── */
 async function searchDuckDuckGo(query: string): Promise<{ titulo: string; url: string; descricao: string }[]> {
@@ -19,7 +35,6 @@ async function searchDuckDuckGo(query: string): Promise<{ titulo: string; url: s
     const html = await resp.text();
 
     const results: { titulo: string; url: string; descricao: string }[] = [];
-    // Extract result blocks
     const resultBlocks = html.split(/class="result\s/);
     for (let i = 1; i < Math.min(resultBlocks.length, 6); i++) {
       const block = resultBlocks[i];
@@ -29,7 +44,6 @@ async function searchDuckDuckGo(query: string): Promise<{ titulo: string; url: s
 
       const titulo = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "";
       let url = urlMatch ? urlMatch[1] : "";
-      // DDG wraps URLs
       if (url.includes("uddg=")) {
         try { url = decodeURIComponent(url.split("uddg=")[1].split("&")[0]); } catch {}
       }
@@ -77,7 +91,6 @@ async function fetchSiteContent(url: string): Promise<string | null> {
     if (!resp.ok) return null;
     const html = await resp.text();
 
-    // Extract useful text
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     const metaDescMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([\s\S]*?)["']/i);
     const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
@@ -151,7 +164,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { nome, cnpj, cidade, site } = await req.json();
+    const { nome, cnpj, cidade, site, force_refresh } = await req.json();
     if (!nome) {
       return new Response(JSON.stringify({ error: "Nome da empresa é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -160,6 +173,31 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const supabaseAdmin = getSupabaseAdmin();
+    const cacheKey = buildCacheKey(nome, cnpj);
+
+    // ── CHECK CACHE (unless force_refresh) ──
+    if (!force_refresh) {
+      const { data: cached } = await supabaseAdmin
+        .from("pesquisa_cliente_cache")
+        .select("resultado, criado_em, expira_em")
+        .eq("chave_busca", cacheKey)
+        .gt("expira_em", new Date().toISOString())
+        .order("criado_em", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (cached) {
+        console.log(`Cache hit for "${nome}" (key: ${cacheKey})`);
+        const result = cached.resultado as Record<string, any>;
+        result._from_cache = true;
+        result._cached_at = cached.criado_em;
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // ── STEP 1: DuckDuckGo searches in parallel ──
     const queries = [
@@ -179,7 +217,6 @@ serve(async (req) => {
     let cnpjToLookup = cnpj;
 
     if (!cnpjToLookup) {
-      // Try to extract from search results
       const allText = allResults.map(r => `${r.titulo} ${r.descricao}`).join(" ");
       const cnpjMatch = allText.match(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/);
       if (cnpjMatch) cnpjToLookup = cnpjMatch[0];
@@ -342,6 +379,38 @@ CIDADE INFORMADA: ${cidade || "Não informada"}`;
       socio_principal: cnpjData.qsa?.[0]?.nome,
     } : null;
     result.pesquisado_em = new Date().toISOString();
+
+    // ── SAVE TO CACHE ──
+    // Extract corretora_id from the JWT if available
+    let corretoraId: string | null = null;
+    const authHeader = req.headers.get("authorization");
+    if (authHeader) {
+      try {
+        const token = authHeader.replace("Bearer ", "");
+        const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+        if (user) {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("corretora_id")
+            .eq("id", user.id)
+            .single();
+          corretoraId = profile?.corretora_id || null;
+        }
+      } catch (e) {
+        console.warn("Could not extract corretora_id for cache:", e);
+      }
+    }
+
+    await supabaseAdmin.from("pesquisa_cliente_cache").insert({
+      chave_busca: cacheKey,
+      nome_empresa: nome,
+      cnpj: cnpj || cnpjToLookup || null,
+      resultado: result,
+      corretora_id: corretoraId,
+    }).then(({ error }) => {
+      if (error) console.warn("Cache insert error:", error.message);
+      else console.log(`Cached research for "${nome}" (key: ${cacheKey})`);
+    });
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
