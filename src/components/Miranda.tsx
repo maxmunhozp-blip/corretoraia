@@ -3,6 +3,7 @@ import { Sparkles, X, Send, Database, Search, RefreshCw, FileText, BarChart3, Al
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
+import { MirandaChart, parseMessageWithCharts } from "./MirandaChart";
 
 interface Message {
   role: "assistant" | "user";
