@@ -133,16 +133,37 @@ function drawCoverPage(doc: jsPDF, data: PropostaCompleta) {
 }
 
 function drawQuemSomosPage(doc: jsPDF, data: PropostaCompleta) {
+  const p = data.personalizacao;
   drawHeader(doc, data.corretora);
   let y = drawSectionTitle(doc, "Quem somos", 26);
 
   doc.setTextColor(...TEXT_BODY);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  const text = `A ${data.corretora.nome || "nossa corretora"} é uma empresa especializada em facilitar sua vida na hora de escolher um plano de saúde. Trabalhamos para que você tenha um plano de qualidade, com preço justo, que realmente cuide da sua família.`;
+  const defaultText = `A ${data.corretora.nome || "nossa corretora"} é uma empresa especializada em facilitar sua vida na hora de escolher um plano de saúde. Trabalhamos para que você tenha um plano de qualidade, com preço justo, que realmente cuide da sua família.`;
+  const text = p?.paragrafo_quem_somos || p?.paragrafo_abertura || defaultText;
   const lines = doc.splitTextToSize(text, CW);
   doc.text(lines, M, y);
   y += lines.length * 5 + 8;
+
+  // Perfil do cliente (if available)
+  if (data.perfil_cliente?.setor || data.perfil_cliente?.porte) {
+    doc.setFillColor(...CREAM);
+    doc.roundedRect(M, y, CW, 22, 2, 2, "F");
+    doc.setFillColor(...MARSALA);
+    doc.rect(M, y, 1.2, 22, "F");
+    doc.setTextColor(...MARSALA);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(`Entendemos o seu negócio`, M + 6, y + 6);
+    doc.setTextColor(...TEXT_BODY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    const perfilDesc = data.perfil_cliente.contexto_relevante
+      || `Empresa do setor de ${data.perfil_cliente.setor || "serviços"}, porte ${data.perfil_cliente.porte || "médio"}.`;
+    doc.text(doc.splitTextToSize(perfilDesc, CW - 14), M + 6, y + 12);
+    y += 28;
+  }
 
   // Diferenciais
   const difs = [
@@ -165,7 +186,7 @@ function drawQuemSomosPage(doc: jsPDF, data: PropostaCompleta) {
   });
   y += 24;
 
-  // Destaque
+  // Destaque — use personalized quote if available
   doc.setFillColor(...CREAM);
   doc.roundedRect(M, y, CW, 18, 2, 2, "F");
   doc.setFillColor(...MARSALA);
@@ -173,7 +194,9 @@ function drawQuemSomosPage(doc: jsPDF, data: PropostaCompleta) {
   doc.setTextColor(...TEXT_BODY);
   doc.setFont("helvetica", "italic");
   doc.setFontSize(9);
-  const quote = `Com a ${data.corretora.nome || "nossa corretora"}, você tem proteção de verdade, sem surpresas, e com a tranquilidade que sua família merece.`;
+  const quote = p?.argumento_chave
+    ? `"${p.argumento_chave}"`
+    : `Com a ${data.corretora.nome || "nossa corretora"}, você tem proteção de verdade, sem surpresas, e com a tranquilidade que sua família merece.`;
   doc.text(doc.splitTextToSize(quote, CW - 10), M + 6, y + 7);
 
   // Por que nos escolher - same page
