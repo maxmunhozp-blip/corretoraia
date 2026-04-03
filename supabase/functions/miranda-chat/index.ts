@@ -594,36 +594,29 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
       const message = choice.message;
 
-      // If no tool calls, we have the final answer — stream it
+      // If no tool calls, we have the final answer — stream it back
       if (!message.tool_calls?.length || choice.finish_reason === "stop") {
-        // Add the assistant message with tool results to conversation, then stream final
-        conversationMessages.push({ role: "assistant", content: message.content || "" });
-
-        const finalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${lovableKey}`,
-            "Content-Type": "application/json",
+        const finalContent = message.content || "Desculpe, não consegui processar sua solicitação.";
+        
+        // Create SSE stream from the content, chunking for a typing effect
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          async start(controller) {
+            // Split content into small chunks for streaming effect
+            const chunkSize = 8;
+            for (let i = 0; i < finalContent.length; i += chunkSize) {
+              const chunk = finalContent.slice(i, i + chunkSize);
+              const sseChunk = `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: chunk } }] })}\n\n`;
+              controller.enqueue(encoder.encode(sseChunk));
+              // Small delay for typing effect
+              await new Promise(r => setTimeout(r, 15));
+            }
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            controller.close();
           },
-          body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
-            messages: conversationMessages,
-            stream: true,
-          }),
         });
 
-        if (!finalResponse.ok) {
-          // Fallback: return the non-streamed content we already have
-          const fallbackContent = message.content || "Desculpe, não consegui processar sua solicitação.";
-          // Create a simple SSE stream from the content
-          const encoder = new TextEncoder();
-          const sseData = `data: ${JSON.stringify({ choices: [{ delta: { content: fallbackContent } }] })}\n\ndata: [DONE]\n\n`;
-          return new Response(encoder.encode(sseData), {
-            headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-          });
-        }
-
-        return new Response(finalResponse.body, {
+        return new Response(stream, {
           headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
         });
       }
