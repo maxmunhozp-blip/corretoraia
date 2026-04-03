@@ -48,8 +48,7 @@ function parseCurrency(value?: string) {
 
 function extractProposalContext(messages: { role: string; content: string }[] = []) {
   const lines = messages
-    .flatMap((message) => message.content.replace(/\*\*/g, "").split("
-"))
+    .flatMap((message) => message.content.replace(/\*\*/g, "").split("\n"))
     .map((line) => line.replace(/^[-•]\s*/, "").trim())
     .filter((line) => line && !line.startsWith("```") && !line.startsWith("{"));
 
