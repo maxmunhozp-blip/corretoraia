@@ -235,6 +235,17 @@ export function MirandaPanel({
         setCurrentAction(null);
         if (assistantSoFar && cId) {
           await supabase.from("miranda_mensagens").insert({ conversa_id: cId, role: "assistant", content: assistantSoFar });
+
+          // Auto-rename: update title based on latest context every 3 user messages
+          const userMsgCount = mensagens.filter((m) => m.role === "user").length + 1;
+          if (userMsgCount >= 2 && userMsgCount % 2 === 0) {
+            // Use the last user message + first line of assistant response to build a better title
+            const lastUserMsg = text.trim();
+            const firstLine = assistantSoFar.replace(/[#*`]/g, "").split("\n").find((l: string) => l.trim().length > 5)?.trim() || "";
+            const combined = firstLine || lastUserMsg;
+            const newTitle = combined.length > 50 ? combined.slice(0, 47) + "..." : combined;
+            if (newTitle) atualizarTitulo(cId, newTitle);
+          }
         }
       },
       (errorMsg) => {
