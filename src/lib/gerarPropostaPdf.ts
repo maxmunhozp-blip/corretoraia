@@ -66,16 +66,16 @@ export function gerarPropostaPdf(dados: DadosProposta): Blob {
   doc.roundedRect(M, y, CW, 42, 3, 3, "F");
 
   const infoLeft = [
-    ["Cliente", dados.cliente_nome],
+    ["Cliente", dados.cliente_nome || "—"],
     ["Empresa", dados.empresa || "—"],
     ["Operadora", dados.operadora || "—"],
-    ["Vidas", String(dados.vidas)],
+    ["Vidas", dados.vidas != null ? String(dados.vidas) : "—"],
   ];
   const infoRight = [
     ["Valor Estimado", dados.valor_estimado ? fmt(dados.valor_estimado) : "—"],
-    ["Status", dados.status.toUpperCase()],
+    ["Status", (dados.status || "—").toUpperCase()],
     ["Responsável", dados.responsavel || "—"],
-    ["Data Criação", dados.created_at],
+    ["Data Criação", dados.created_at ? format(new Date(dados.created_at), "dd/MM/yyyy HH:mm") : "—"],
   ];
 
   let iy = y + 8;

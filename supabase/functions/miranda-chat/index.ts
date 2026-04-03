@@ -905,7 +905,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
         } catch { /* empty args */ }
 
         console.log(`Executing tool: ${fnName}`, fnArgs);
-        const result = await executeTool(fnName, fnArgs, supabase);
+        const result = await executeTool(fnName, fnArgs, supabase, messages);
         console.log(`Tool result length: ${result.length}`);
         results.push(`[Resultado de ${fnName}]: ${result}`);
       }
