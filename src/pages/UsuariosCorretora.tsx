@@ -110,15 +110,21 @@ export default function UsuariosCorretora() {
       return senha;
     },
     onSuccess: (senha) => {
-      toast.success(`Usuário convidado. Senha: ${senha}`);
+      toast.success(`Usuário ${form.nome} convidado com sucesso!`);
       setOpen(false);
+      setEmailError("");
       setForm({ nome: "", email: "", cargo: "", role: "vendedor", senha: "" });
       queryClient.invalidateQueries({
         queryKey: ["corretora-usuarios"],
       });
     },
     onError: (err: any) => {
-      toast.error("Erro: " + err.message);
+      const msg = err.message || "Erro ao convidar usuário";
+      if (msg.includes("já está cadastrado") || msg.includes("já existe")) {
+        setEmailError("Este e-mail já está em uso. Tente outro endereço.");
+      } else {
+        toast.error(msg);
+      }
     },
   });
 
