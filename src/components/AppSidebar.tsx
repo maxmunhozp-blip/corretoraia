@@ -9,6 +9,7 @@ import {
   Lock,
   Code2,
   Settings,
+  Building2,
   LogOut,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -23,6 +24,7 @@ const navItems = [
   { title: "Base de Conhecimento", url: "/base-conhecimento", icon: BookOpen },
   { title: "Acessos", url: "/acessos", icon: Lock },
   { title: "Desenvolvimento", url: "/desenvolvimento", icon: Code2 },
+  { title: "Gestão", url: "/gestao", icon: Building2 },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
