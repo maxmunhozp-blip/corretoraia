@@ -571,8 +571,7 @@ function addHighlightCard(doc: jsPDF, y: number, dados: DadosComparativo): numbe
 
   if (!melhorEconomia || melhorEconomia.percentual_reducao <= 0) return y;
 
-  y = ensureSpace(null as any, y, 50); // simple check
-  if (y + 50 > PAGE_H - 20) return y; // skip if no space
+  if (y + 50 > PAGE_H - 20) return y; // skip if no space on page
 
   const cardW = CW;
   const innerMargin = 10;
