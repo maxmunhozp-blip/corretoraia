@@ -348,6 +348,8 @@ export function MirandaPanel({
                       {parseMessageWithCharts(msg.content).map((segment, si) =>
                         segment.type === "chart" ? (
                           <MirandaChart key={si} data={segment.data} />
+                        ) : segment.type === "download" ? (
+                          <DownloadCard key={si} filename={segment.data.filename} size={segment.data.size} url={segment.data.url} />
                         ) : (
                           <MirandaMarkdown key={si} content={segment.content} />
                         )

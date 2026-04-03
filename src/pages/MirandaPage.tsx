@@ -470,6 +470,8 @@ export default function MirandaPage() {
                     {parseMessageWithCharts(msg.content).map((seg, si) =>
                       seg.type === "chart" ? (
                         <MirandaChart key={si} data={seg.data} />
+                      ) : seg.type === "download" ? (
+                        <DownloadCard key={si} filename={seg.data.filename} size={seg.data.size} url={seg.data.url} />
                       ) : (
                         <MirandaMarkdown key={si} content={seg.content} />
                       )
