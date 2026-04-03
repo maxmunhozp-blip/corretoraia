@@ -716,9 +716,9 @@ export default function MirandaPage() {
         </div>
       </div>
 
-      {/* RIGHT PANEL */}
+      {/* RIGHT PANEL - hidden below xl (1280px) */}
       {rightPanelOpen && (
-        <div className="w-[300px] border-l border-border flex flex-col bg-card shrink-0">
+        <div className="hidden xl:flex w-[300px] border-l border-border flex-col bg-card shrink-0">
           <div className="px-4 py-4 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">Contexto & Ferramentas</h3>
           </div>
