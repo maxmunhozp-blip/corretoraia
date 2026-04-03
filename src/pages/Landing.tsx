@@ -235,7 +235,7 @@ export default function Landing() {
                 Entrar
               </Button>
             </Link>
-            <Link to="/login">
+            <Link to="/cadastro">
               <Button className="bg-brand hover:bg-brand-hover text-white">
                 Teste grátis 14 dias
               </Button>
@@ -282,7 +282,7 @@ export default function Landing() {
                   Entrar
                 </Button>
               </Link>
-              <Link to="/login" className="flex-1">
+              <Link to="/cadastro" className="flex-1">
                 <Button className="w-full bg-brand hover:bg-brand-hover text-white">
                   Teste grátis
                 </Button>
@@ -310,7 +310,7 @@ export default function Landing() {
             lugar. Com a Miranda, sua IA, respondendo em tempo real.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/login">
+            <Link to="/cadastro">
               <Button
                 size="lg"
                 className="bg-brand hover:bg-brand-hover text-white px-8 text-base"
@@ -576,7 +576,7 @@ export default function Landing() {
                     ))}
                   </ul>
 
-                  <Link to="/login" className="mt-6">
+                  <Link to="/cadastro" className="mt-6">
                     <Button
                       className={`w-full ${
                         p.destaque
@@ -634,7 +634,7 @@ export default function Landing() {
           <p className="text-white/80 mt-4 text-lg">
             Comece agora, grátis por 14 dias. Sem cartão de crédito.
           </p>
-          <Link to="/login" className="inline-block mt-8">
+          <Link to="/cadastro" className="inline-block mt-8">
             <Button
               size="lg"
               className="bg-white text-brand hover:bg-white/90 px-8 text-base font-semibold"
