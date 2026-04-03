@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageWrapper } from "@/components/PageWrapper";
-import { Upload, Globe, Search, BookOpen } from "lucide-react";
+import { Upload, Globe, Search, BookOpen, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,12 +8,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useBaseConhecimento } from "@/hooks/useBaseConhecimento";
 import { DocumentoCard } from "@/components/base-conhecimento/DocumentoCard";
 import { UploadDocumentoModal } from "@/components/base-conhecimento/UploadDocumentoModal";
+import { UploadPastaModal } from "@/components/base-conhecimento/UploadPastaModal";
 import { BuscarInternetModal } from "@/components/base-conhecimento/BuscarInternetModal";
 
 export default function BaseConhecimento() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("todos");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [pastaOpen, setPastaOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const { data: documentos, isLoading } = useBaseConhecimento({ search, categoria: activeTab });
@@ -24,7 +26,10 @@ export default function BaseConhecimento() {
         <h1 className="text-2xl font-bold text-foreground">Base de Conhecimento</h1>
         <div className="flex items-center gap-2">
           <Button onClick={() => setUploadOpen(true)} className="bg-brand text-brand-foreground hover:bg-brand-hover">
-            <Upload className="h-4 w-4 mr-2" /> Upload de documento
+            <Upload className="h-4 w-4 mr-2" /> Upload
+          </Button>
+          <Button onClick={() => setPastaOpen(true)} variant="outline" className="border-brand text-brand hover:bg-brand-light">
+            <FolderOpen className="h-4 w-4 mr-2" /> Upload de Pasta
           </Button>
           <Button variant="outline" onClick={() => setSearchOpen(true)} className="border-brand text-brand hover:bg-brand-light">
             <Globe className="h-4 w-4 mr-2" /> Buscar na internet
@@ -78,6 +83,7 @@ export default function BaseConhecimento() {
       )}
 
       <UploadDocumentoModal open={uploadOpen} onOpenChange={setUploadOpen} />
+      <UploadPastaModal open={pastaOpen} onOpenChange={setPastaOpen} />
       <BuscarInternetModal open={searchOpen} onOpenChange={setSearchOpen} />
     </PageWrapper>
   );
