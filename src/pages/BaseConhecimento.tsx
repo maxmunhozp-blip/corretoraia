@@ -50,7 +50,7 @@ export default function BaseConhecimento() {
       <div className="relative max-w-md mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Pesquisar na base de conhecimento..."
+          placeholder="Buscar por título ou conteúdo dos documentos..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -71,7 +71,7 @@ export default function BaseConhecimento() {
       ) : documentos && documentos.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {documentos.map((doc, i) => (
-            <DocumentoCard key={doc.id} doc={doc as any} index={i} />
+            <DocumentoCard key={doc.id} doc={doc as any} index={i} searchQuery={search} />
           ))}
         </div>
       ) : (
