@@ -277,7 +277,7 @@ export default function Landing() {
               Contato
             </button>
             <div className="flex gap-2 pt-2">
-              <Link to="/cadastro" className="flex-1">
+              <Link to="/login" className="flex-1">
                 <Button variant="outline" className="w-full border-brand text-brand">
                   Entrar
                 </Button>
