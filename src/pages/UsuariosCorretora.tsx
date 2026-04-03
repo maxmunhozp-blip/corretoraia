@@ -118,23 +118,19 @@ export default function UsuariosCorretora() {
         throw new Error("Erro de conexão. Tente novamente.");
       }
 
-      if (error) {
-        // Extract the actual error message from the edge function response
-        let msg = "Erro ao convidar usuário";
-        try {
-          if (typeof error.context?.json === "function") {
-            const body = await error.context.json();
-            if (body?.error) msg = body.error;
-          } else if (error.message) {
-            msg = error.message;
-          }
-        } catch {
-          if (error.message) msg = error.message;
-        }
-        throw new Error(msg);
+      // When edge function returns non-2xx, supabase-js puts parsed body in `data`
+      // and sets `error` to a FunctionsHttpError with generic message
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
-      if (data?.error) throw new Error(data.error);
+      if (error) {
+        throw new Error("Erro ao convidar usuário");
+      }
+
+      if (!data?.success) {
+        throw new Error("Resposta inesperada do servidor");
+      }
       return senha;
     },
     onSuccess: () => {
