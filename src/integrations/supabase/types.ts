@@ -283,14 +283,48 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracoes_globais: {
+        Row: {
+          categoria: string
+          chave: string
+          created_at: string
+          descricao: string | null
+          id: string
+          updated_at: string
+          valor: string | null
+        }
+        Insert: {
+          categoria?: string
+          chave: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          valor?: string | null
+        }
+        Update: {
+          categoria?: string
+          chave?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          valor?: string | null
+        }
+        Relationships: []
+      }
       corretoras: {
         Row: {
           assinatura_fim: string | null
           assinatura_inicio: string | null
           cidade: string | null
           cnpj: string | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
           created_at: string | null
+          dominio_customizado: string | null
           email: string
+          email_remetente: string | null
           estado: string | null
           id: string
           logo_url: string | null
@@ -309,8 +343,12 @@ export type Database = {
           assinatura_inicio?: string | null
           cidade?: string | null
           cnpj?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string | null
+          dominio_customizado?: string | null
           email: string
+          email_remetente?: string | null
           estado?: string | null
           id?: string
           logo_url?: string | null
@@ -329,8 +367,12 @@ export type Database = {
           assinatura_inicio?: string | null
           cidade?: string | null
           cnpj?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string | null
+          dominio_customizado?: string | null
           email?: string
+          email_remetente?: string | null
           estado?: string | null
           id?: string
           logo_url?: string | null
