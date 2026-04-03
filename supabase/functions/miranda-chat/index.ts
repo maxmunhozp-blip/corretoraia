@@ -1412,10 +1412,11 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
         ? `\n\n💰 **Economia projetada:** R$ ${Number(p.economia_mensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês (${Number(p.economia_percentual).toFixed(1)}%)`
         : "";
 
-      // If we also have a PDF payload, include it
+      // Always include a PDF block — use the explicit pdfPayload if available, otherwise the embedded one from the proposal
+      const effectivePdf = pdfPayload || p.__embedded_pdf || null;
       let pdfBlock = "";
-      if (pdfPayload) {
-        pdfBlock = `\n\n\`\`\`generate_pdf\n${JSON.stringify(pdfPayload)}\n\`\`\``;
+      if (effectivePdf) {
+        pdfBlock = `\n\n\`\`\`generate_pdf\n${JSON.stringify(effectivePdf)}\n\`\`\``;
       }
 
       const msg = `✅ **Proposta criada com sucesso para ${p.cliente_nome}!**${economiaPart}\n\nO link da proposta interativa está pronto para envio ao cliente.\n\n\`\`\`proposta_criada\n${propostaJson}\n\`\`\`${pdfBlock}`;
