@@ -101,12 +101,12 @@ export function UserCard({ usuario, isCurrentUser, isMaster, onUpdated }: UserCa
             <div className="px-4 pb-4 pt-0 border-t">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Shield className="h-4 w-4 shrink-0" />
-                  <span>Permissão: <strong className="text-foreground">{roleLabel(usuario.role)}</strong></span>
+                  <Mail className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{usuario.email || "Email não disponível"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Mail className="h-4 w-4 shrink-0" />
-                  <span className="truncate">ID: <span className="font-mono text-xs">{usuario.id?.slice(0, 8)}...</span></span>
+                  <Shield className="h-4 w-4 shrink-0" />
+                  <span>Permissão: <strong className="text-foreground">{roleLabel(usuario.role)}</strong></span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4 shrink-0" />
