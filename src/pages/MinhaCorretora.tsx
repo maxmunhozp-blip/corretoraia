@@ -16,12 +16,9 @@ export default function MinhaCorretora() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<Record<string, string>>({});
 
   const corretora_id = profile?.corretora_id;
-
-  if (profile?.role !== "admin_corretora") {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   const { data: corretora, isLoading } = useQuery({
     queryKey: ["minha-corretora", corretora_id],
@@ -37,7 +34,9 @@ export default function MinhaCorretora() {
     enabled: !!corretora_id,
   });
 
-  const [form, setForm] = useState<Record<string, string>>({});
+  if (profile?.role !== "admin_corretora") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const formValue = (key: string) =>
     form[key] !== undefined ? form[key] : (corretora as any)?.[key] ?? "";
