@@ -95,42 +95,37 @@ export default function UsuariosCorretora() {
       const senha =
         form.senha || Math.random().toString(36).slice(-8) + "A1!";
 
-      let data: any = null;
-      let error: any = null;
+      // Use raw fetch for full control over error parsing
+      const session = (await supabase.auth.getSession()).data.session;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      try {
-        const response = await supabase.functions.invoke(
-          "admin-create-user",
-          {
-            body: {
-              email: form.email,
-              password: senha,
-              nome: form.nome,
-              cargo: form.cargo || null,
-              role: form.role,
-              corretora_id,
-            },
-          }
-        );
-        data = response.data;
-        error = response.error;
-      } catch (invokeErr: any) {
-        throw new Error("Erro de conexão. Tente novamente.");
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/admin-create-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: anonKey,
+          },
+          body: JSON.stringify({
+            email: form.email,
+            password: senha,
+            nome: form.nome,
+            cargo: form.cargo || null,
+            role: form.role,
+            corretora_id,
+          }),
+        }
+      );
+
+      const body = await res.json();
+
+      if (!res.ok || body.error) {
+        throw new Error(body.error || "Erro ao convidar usuário");
       }
 
-      // When edge function returns non-2xx, supabase-js puts parsed body in `data`
-      // and sets `error` to a FunctionsHttpError with generic message
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      if (error) {
-        throw new Error("Erro ao convidar usuário");
-      }
-
-      if (!data?.success) {
-        throw new Error("Resposta inesperada do servidor");
-      }
       return senha;
     },
     onSuccess: () => {
