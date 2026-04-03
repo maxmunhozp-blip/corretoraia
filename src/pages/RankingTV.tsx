@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Trophy, TrendingUp, Crown, Medal, Award, Flame } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCountUp } from "@/hooks/useCountUp";
@@ -14,6 +14,129 @@ interface Vendedor {
   conversao: number;
   propostas_ativas: number;
   meta_mensal: number;
+}
+
+/* ── Confetti System ── */
+interface ConfettiPiece {
+  id: number;
+  x: number;
+  y: number;
+  rotation: number;
+  color: string;
+  size: number;
+  velocityX: number;
+  velocityY: number;
+  rotationSpeed: number;
+  opacity: number;
+  shape: "rect" | "circle" | "triangle";
+}
+
+const CONFETTI_COLORS = ["#FFD700", "#FF6B6B", "#4ADE80", "#60A5FA", "#F472B6", "#A78BFA", "#FBBF24", "#34D399", "#F87171", "#818CF8"];
+
+function ConfettiCanvas({ active }: { active: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const piecesRef = useRef<ConfettiPiece[]>([]);
+  const frameRef = useRef<number>();
+  const spawnedRef = useRef(false);
+
+  const spawn = useCallback(() => {
+    const pieces: ConfettiPiece[] = [];
+    for (let i = 0; i < 150; i++) {
+      pieces.push({
+        id: i,
+        x: Math.random() * window.innerWidth,
+        y: -20 - Math.random() * 400,
+        rotation: Math.random() * 360,
+        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+        size: 6 + Math.random() * 8,
+        velocityX: (Math.random() - 0.5) * 6,
+        velocityY: 2 + Math.random() * 4,
+        rotationSpeed: (Math.random() - 0.5) * 10,
+        opacity: 1,
+        shape: (["rect", "circle", "triangle"] as const)[Math.floor(Math.random() * 3)],
+      });
+    }
+    piecesRef.current = pieces;
+  }, []);
+
+  useEffect(() => {
+    if (!active || spawnedRef.current) return;
+    spawnedRef.current = true;
+    spawn();
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+
+      for (const p of piecesRef.current) {
+        p.x += p.velocityX;
+        p.y += p.velocityY;
+        p.rotation += p.rotationSpeed;
+        p.velocityY += 0.05; // gravity
+        p.opacity -= 0.003;
+
+        if (p.opacity <= 0 || p.y > canvas.height + 50) continue;
+        alive = true;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.fillStyle = p.color;
+
+        if (p.shape === "rect") {
+          ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        } else if (p.shape === "circle") {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(0, -p.size / 2);
+          ctx.lineTo(p.size / 2, p.size / 2);
+          ctx.lineTo(-p.size / 2, p.size / 2);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      if (alive) {
+        frameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    frameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
+  }, [active, spawn]);
+
+  // Re-spawn on subsequent activations
+  useEffect(() => {
+    if (!active) {
+      spawnedRef.current = false;
+    }
+  }, [active]);
+
+  if (!active) return null;
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 z-50 pointer-events-none"
+      style={{ width: "100vw", height: "100vh" }}
+    />
+  );
 }
 
 function fmt(v: number) {
@@ -163,6 +286,8 @@ export default function RankingTV() {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [clock, setClock] = useState(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevMetaAchieversRef = useRef<Set<string>>(new Set());
 
   // Fetch data
   useEffect(() => {
@@ -207,6 +332,29 @@ export default function RankingTV() {
     return () => clearInterval(t);
   }, []);
 
+  // Detect new meta achievers → trigger confetti
+  useEffect(() => {
+    const currentAchievers = new Set(
+      vendedores
+        .filter((v) => v.meta_mensal > 0 && v.receita_gerada >= v.meta_mensal)
+        .map((v) => v.id)
+    );
+    const prev = prevMetaAchieversRef.current;
+    const hasNew = [...currentAchievers].some((id) => !prev.has(id));
+
+    if (hasNew && prev.size > 0) {
+      // Only trigger after initial load (prev.size > 0 means we already loaded once)
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 6000);
+    }
+    // Also trigger on first load if anyone is at 100%
+    if (prev.size === 0 && currentAchievers.size > 0) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 6000);
+    }
+    prevMetaAchieversRef.current = currentAchievers;
+  }, [vendedores]);
+
   const top3 = vendedores.slice(0, 3);
   const rest = vendedores.slice(3);
 
@@ -219,6 +367,7 @@ export default function RankingTV() {
 
   return (
     <div className="fixed inset-0 bg-[#0f0f13] text-white overflow-hidden" key={refreshKey}>
+      <ConfettiCanvas active={showConfetti} />
       <style>{`
         @keyframes tvFadeUp {
           from { opacity: 0; transform: translateY(30px); }
