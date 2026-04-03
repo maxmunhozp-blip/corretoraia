@@ -95,55 +95,71 @@ export default function UsuariosCorretora() {
       const senha =
         form.senha || Math.random().toString(36).slice(-8) + "A1!";
 
-      // Use raw fetch for full control over error parsing
-      const session = (await supabase.auth.getSession()).data.session;
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      setEmailError("");
 
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/admin-create-user`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-            apikey: anonKey,
-          },
-          body: JSON.stringify({
+      try {
+        const { data, error } = await supabase.functions.invoke("admin-create-user", {
+          body: {
             email: form.email,
             password: senha,
             nome: form.nome,
             cargo: form.cargo || null,
             role: form.role,
             corretora_id,
-          }),
+          },
+        });
+
+        if (error) {
+          let mensagem = "Erro ao convidar usuário";
+          try {
+            const parsed = JSON.parse(error.message);
+            mensagem = parsed.error || mensagem;
+          } catch {
+            try {
+              if (typeof error.context?.json === "function") {
+                const parsed = await error.context.json();
+                mensagem = parsed?.error || error.message || mensagem;
+              } else {
+                mensagem = error.message || mensagem;
+              }
+            } catch {
+              mensagem = error.message || mensagem;
+            }
+          }
+
+          setEmailError(
+            mensagem.includes("já está cadastrado")
+              ? "Este e-mail já está em uso. Tente outro endereço."
+              : mensagem
+          );
+          return null;
         }
-      );
 
-      const body = await res.json();
+        if (data?.error) {
+          const mensagem = typeof data.error === "string" ? data.error : "Erro ao convidar usuário";
+          setEmailError(
+            mensagem.includes("já está cadastrado")
+              ? "Este e-mail já está em uso. Tente outro endereço."
+              : mensagem
+          );
+          return null;
+        }
 
-      if (!res.ok || body.error) {
-        throw new Error(body.error || "Erro ao convidar usuário");
+        return { senha };
+      } catch {
+        setEmailError("Erro inesperado. Tente novamente.");
+        return null;
       }
-
-      return senha;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (!result) return;
       toast.success(`Usuário ${form.nome} convidado com sucesso!`);
       setOpen(false);
       setEmailError("");
       setForm({ nome: "", email: "", cargo: "", role: "vendedor", senha: "" });
       queryClient.invalidateQueries({
-        queryKey: ["corretora-usuarios"],
+        queryKey: ["corretora-usuarios", corretora_id],
       });
-    },
-    onError: (err: any) => {
-      const msg = err?.message || "Erro ao convidar usuário";
-      if (msg.includes("já está cadastrado") || msg.includes("já existe") || msg.includes("já está em uso")) {
-        setEmailError("Este e-mail já está em uso. Tente outro endereço.");
-      } else {
-        toast.error(msg);
-      }
     },
   });
 
