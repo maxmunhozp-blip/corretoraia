@@ -9,7 +9,7 @@ interface Message {
 const INITIAL_MESSAGE: Message = {
   role: "assistant",
   content:
-    "Olá! Sou a Miranda, sua assistente de IA. Posso buscar clientes, verificar status de propostas, responder sobre regras das operadoras e muito mais. Como posso ajudar?",
+    "Olá! Sou a Miranda, sua assistente de IA. Posso buscar clientes, verificar status de propostas, responder sobre regras das operadoras e consultar a base de conhecimento. Como posso ajudar?",
 };
 
 const quickSuggestions = [
@@ -19,24 +19,7 @@ const quickSuggestions = [
   "Resumo do dia",
 ];
 
-const mockResponses: Record<string, string> = {
-  "Ver propostas pendentes":
-    'Encontrei 2 propostas com pendência: **Construtora XYZ** (Amil, 45 vidas) e **Clínica Norte** (Amil, 15 vidas). Ambas aguardam documentação. Quer que eu envie um lembrete?',
-  "Clientes inadimplentes":
-    "Identifiquei 1 cliente com parcelas em atraso: **Empresa XYZ** com 3 parcelas pendentes. Risco de cancelamento alto. Deseja que eu gere um relatório?",
-  "Regras da SulAmérica PME":
-    "A SulAmérica PME exige mínimo de 2 vidas, carência de 180 dias para procedimentos complexos e aceita MEI com mais de 6 meses de CNPJ. Precisa de mais detalhes?",
-  "Resumo do dia":
-    "Hoje você tem: **3 propostas em análise**, **1 follow-up agendado** com Maria Souza às 14h, e **2 alertas** de vencimento. Dia produtivo pela frente!",
-};
-
-function getResponse(input: string): string {
-  const key = Object.keys(mockResponses).find(
-    (k) => k.toLowerCase() === input.toLowerCase()
-  );
-  if (key) return mockResponses[key];
-  return "Entendi sua dúvida! Estou processando as informações. Em breve terei uma resposta mais completa para você. Posso ajudar com mais alguma coisa?";
-}
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/miranda-chat`;
 
 /* ── Typing dots ── */
 function TypingIndicator() {
@@ -66,6 +49,63 @@ function renderContent(text: string) {
   );
 }
 
+async function streamChat(
+  messages: { role: string; content: string }[],
+  onDelta: (text: string) => void,
+  onDone: () => void,
+  onError: (msg: string) => void,
+) {
+  try {
+    const resp = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ messages }),
+    });
+
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      onError(data.error || "Erro ao conectar com a Miranda");
+      return;
+    }
+
+    if (!resp.body) {
+      onError("Resposta vazia");
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let newlineIdx: number;
+      while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+        let line = buffer.slice(0, newlineIdx);
+        buffer = buffer.slice(newlineIdx + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (!line.startsWith("data: ")) continue;
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") break;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) onDelta(content);
+        } catch { /* partial JSON, skip */ }
+      }
+    }
+    onDone();
+  } catch (e) {
+    onError("Erro de conexão com a Miranda");
+  }
+}
+
 /* ── Panel ── */
 export function MirandaPanel({
   open,
@@ -85,20 +125,45 @@ export function MirandaPanel({
   }, [messages, typing]);
 
   const send = (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || typing) return;
     setShowSuggestions(false);
     const userMsg: Message = { role: "user", content: text.trim() };
-    setMessages((prev) => [...prev, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput("");
     setTyping(true);
 
-    setTimeout(() => {
-      setTyping(false);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: getResponse(text.trim()) },
-      ]);
-    }, 1500);
+    let assistantSoFar = "";
+
+    const apiMessages = newMessages
+      .filter((m) => m !== INITIAL_MESSAGE)
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    streamChat(
+      apiMessages,
+      (chunk) => {
+        assistantSoFar += chunk;
+        const current = assistantSoFar;
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && prev.length > 1 && prev[prev.length - 2]?.role === "user") {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: current } : m));
+          }
+          return [...prev, { role: "assistant", content: current }];
+        });
+        setTyping(false);
+      },
+      () => {
+        setTyping(false);
+      },
+      (errorMsg) => {
+        setTyping(false);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `⚠️ ${errorMsg}` },
+        ]);
+      },
+    );
   };
 
   const handleKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -110,7 +175,6 @@ export function MirandaPanel({
 
   return (
     <>
-      {/* Backdrop */}
       {open && (
         <div
           className="fixed inset-0 bg-foreground/20 z-[60] transition-opacity duration-300"
@@ -118,13 +182,11 @@ export function MirandaPanel({
         />
       )}
 
-      {/* Panel */}
       <div
         className={`fixed top-0 right-0 h-full w-[380px] max-w-full z-[70] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 bg-brand">
           <Sparkles className="h-5 w-5 text-brand-foreground" />
           <div className="flex-1">
@@ -139,7 +201,6 @@ export function MirandaPanel({
           </button>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface">
           {messages.map((msg, i) =>
             msg.role === "assistant" ? (
@@ -160,7 +221,6 @@ export function MirandaPanel({
             )
           )}
 
-          {/* Suggestions */}
           {showSuggestions && (
             <div className="flex flex-wrap gap-2 animate-msg-in">
               {quickSuggestions.map((s) => (
@@ -179,7 +239,6 @@ export function MirandaPanel({
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
         <div className="border-t border-border bg-card px-4 py-3 flex items-center gap-2">
           <input
             value={input}
@@ -190,7 +249,7 @@ export function MirandaPanel({
           />
           <button
             onClick={() => send(input)}
-            disabled={!input.trim()}
+            disabled={!input.trim() || typing}
             className="h-9 w-9 rounded-md bg-brand flex items-center justify-center hover:bg-brand-hover transition-colors disabled:opacity-40"
           >
             <Send className="h-4 w-4 text-brand-foreground" />
