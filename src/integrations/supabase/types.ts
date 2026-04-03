@@ -416,6 +416,125 @@ export type Database = {
           },
         ]
       }
+      solicitacao_comentarios: {
+        Row: {
+          autor_id: string
+          conteudo: string
+          created_at: string
+          id: string
+          solicitacao_id: string
+        }
+        Insert: {
+          autor_id: string
+          conteudo: string
+          created_at?: string
+          id?: string
+          solicitacao_id: string
+        }
+        Update: {
+          autor_id?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          solicitacao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacao_comentarios_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_comentarios_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitacao_votos: {
+        Row: {
+          created_at: string
+          id: string
+          solicitacao_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          solicitacao_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          solicitacao_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacao_votos_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_votos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitacoes: {
+        Row: {
+          autor_id: string | null
+          created_at: string
+          descricao: string
+          id: string
+          prioridade: string
+          setor: string
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          prioridade?: string
+          setor: string
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          prioridade?: string
+          setor?: string
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
