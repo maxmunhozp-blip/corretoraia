@@ -8,9 +8,10 @@ import {
   BookOpen,
   Lock,
   Settings,
+  LogOut,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -25,19 +26,28 @@ const navItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login");
+  };
+
+  const displayName = profile?.nome ?? "Usuário";
+  const displayCargo = profile?.cargo ?? "Vendedor";
+  const initials = profile?.avatar_iniciais ?? displayName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-60 border-r border-border bg-background flex flex-col z-50">
-      {/* Logo */}
       <div className="flex items-center gap-2 px-5 py-5">
         <Activity className="h-6 w-6 text-brand" />
         <span className="text-xl font-bold text-foreground">Cora</span>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
-          const active = location.pathname === item.url || location.pathname === "/" && item.url === "/dashboard";
+          const active = location.pathname === item.url;
           return (
             <NavLink
               key={item.url}
@@ -55,15 +65,21 @@ export function AppSidebar() {
         })}
       </nav>
 
-      {/* Footer */}
       <div className="border-t border-border px-4 py-4 flex items-center gap-3">
         <div className="h-9 w-9 rounded-full bg-brand-light flex items-center justify-center text-brand text-sm font-semibold">
-          MM
+          {initials}
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-foreground">Max Munhoz</span>
-          <span className="text-xs text-muted-foreground">Diretor</span>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-medium text-foreground block truncate">{displayName}</span>
+          <span className="text-xs text-muted-foreground block truncate">{displayCargo}</span>
         </div>
+        <button
+          onClick={handleLogout}
+          title="Sair"
+          className="p-1.5 rounded-md hover:bg-surface transition-colors"
+        >
+          <LogOut className="h-4 w-4 text-muted-foreground" />
+        </button>
       </div>
     </aside>
   );
