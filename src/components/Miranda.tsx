@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Sparkles, X, Send, Database, Search, RefreshCw, FileText, BarChart3, AlertTriangle, Plus, MessageSquare, Trash2, ChevronLeft } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -258,7 +258,7 @@ export function MirandaPanel({
     );
   };
 
-  const handleKey = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send(input);
@@ -450,13 +450,18 @@ export function MirandaPanel({
         </div>
 
         {/* Input */}
-        <div className="border-t border-border bg-card px-4 py-3 flex items-center gap-2">
-          <input
+        <div className="border-t border-border bg-card px-4 py-3 flex items-end gap-2">
+          <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+            }}
             onKeyDown={handleKey}
             placeholder="Pergunte para a Miranda..."
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+            rows={1}
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none max-h-[120px] leading-5 py-1.5"
           />
           <button
             onClick={() => send(input)}
