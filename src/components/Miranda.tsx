@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Sparkles, X, Send, Database, Search, RefreshCw, FileText, BarChart3, AlertTriangle, Plus, MessageSquare, Trash2, ChevronLeft } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
