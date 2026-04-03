@@ -100,7 +100,7 @@ export function AppSidebar() {
           })}
 
           {/* Admin Corretora section */}
-          {role === "admin_corretora" && (
+          {(role === "admin_corretora" || role === "master") && (
             <>
               <div className="my-3 border-t border-border" />
               <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
@@ -127,6 +127,17 @@ export function AppSidebar() {
               >
                 <Building2 className="h-4 w-4 shrink-0" />
                 <span>Minha Corretora</span>
+              </NavLink>
+              <NavLink
+                to="/configuracoes/miranda"
+                className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                  location.pathname === "/configuracoes/miranda"
+                    ? "bg-brand-light text-brand"
+                    : "text-muted-foreground hover:bg-surface hover:translate-x-0.5"
+                }`}
+              >
+                <Sparkles className="h-4 w-4 shrink-0" />
+                <span>Miranda IA</span>
               </NavLink>
             </>
           )}
