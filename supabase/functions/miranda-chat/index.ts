@@ -495,6 +495,108 @@ async function executeTool(name: string, args: any, supabase: any): Promise<stri
         return JSON.stringify({ sucesso: true, mensagem: `Alerta "${titulo}" criado com sucesso` });
       }
 
+      case "gerar_proposta_pdf": {
+        const { cliente_nome, proposta_id } = args;
+        let q = supabase
+          .from("propostas")
+          .select("*, operadoras(nome), profiles!propostas_responsavel_id_fkey(nome)")
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (proposta_id) q = q.eq("id", proposta_id);
+        else if (cliente_nome) q = q.ilike("cliente_nome", `%${cliente_nome}%`);
+
+        const { data } = await q;
+        if (!data?.length) return JSON.stringify({ erro: "Proposta não encontrada" });
+
+        const p = data[0];
+        const propostaData = {
+          __pdf_type: "proposta",
+          cliente_nome: p.cliente_nome,
+          empresa: p.empresa,
+          vidas: p.vidas,
+          valor_estimado: p.valor_estimado,
+          operadora: p.operadoras?.nome,
+          status: p.status,
+          responsavel: p.profiles?.nome,
+          observacoes: p.observacoes,
+          created_at: p.created_at,
+        };
+        return JSON.stringify(propostaData);
+      }
+
+      case "gerar_relatorio_executivo": {
+        const { periodo = "mes_atual" } = args;
+        const now = new Date();
+        let since: Date;
+        switch (periodo) {
+          case "semana": since = new Date(now.getTime() - 7 * 86400000); break;
+          case "trimestre": since = new Date(now.getFullYear(), now.getMonth() - 3, 1); break;
+          case "ano": since = new Date(now.getFullYear(), 0, 1); break;
+          default: since = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+
+        const [
+          { data: allPropostas },
+          { data: alertasAtivos },
+        ] = await Promise.all([
+          supabase.from("propostas").select("status, valor_estimado, responsavel_id").gte("created_at", since.toISOString()),
+          supabase.from("alertas").select("nivel").eq("resolvido", false),
+        ]);
+
+        const props = allPropostas || [];
+        const aprovadas = props.filter((p: any) => p.status === "aprovada");
+
+        // Status distribution
+        const statusMap: Record<string, number> = {};
+        for (const p of props) {
+          statusMap[p.status] = (statusMap[p.status] || 0) + 1;
+        }
+
+        // Top vendedores
+        const vendedorMap: Record<string, { count: number; valor: number }> = {};
+        for (const p of aprovadas) {
+          if (p.responsavel_id) {
+            if (!vendedorMap[p.responsavel_id]) vendedorMap[p.responsavel_id] = { count: 0, valor: 0 };
+            vendedorMap[p.responsavel_id].count++;
+            vendedorMap[p.responsavel_id].valor += Number(p.valor_estimado || 0);
+          }
+        }
+        const topIds = Object.entries(vendedorMap).sort((a, b) => b[1].valor - a[1].valor).slice(0, 5);
+        let topVendedores: any[] = [];
+        if (topIds.length) {
+          const { data: profiles } = await supabase.from("profiles").select("id, nome").in("id", topIds.map(t => t[0]));
+          topVendedores = topIds.map(([id, stats]) => ({
+            nome: profiles?.find((p: any) => p.id === id)?.nome || "Desconhecido",
+            vendas: stats.count,
+            valor_total: stats.valor,
+          }));
+        }
+
+        const alertas = alertasAtivos || [];
+        const periodoLabel = periodo === "semana" ? "Última Semana" : periodo === "trimestre" ? "Trimestre" : periodo === "ano" ? "Ano" : "Mês Atual";
+
+        return JSON.stringify({
+          __pdf_type: "relatorio_executivo",
+          periodo: periodoLabel,
+          propostas_total: props.length,
+          propostas_aprovadas: aprovadas.length,
+          taxa_conversao: props.length > 0 ? Math.round((aprovadas.length / props.length) * 100) : 0,
+          valor_total_aprovado: aprovadas.reduce((s: number, p: any) => s + Number(p.valor_estimado || 0), 0),
+          ticket_medio: aprovadas.length > 0
+            ? Math.round(aprovadas.reduce((s: number, p: any) => s + Number(p.valor_estimado || 0), 0) / aprovadas.length)
+            : 0,
+          alertas: {
+            total: alertas.length,
+            alto: alertas.filter((a: any) => a.nivel === "alto").length,
+            medio: alertas.filter((a: any) => a.nivel === "medio").length,
+            baixo: alertas.filter((a: any) => a.nivel === "baixo").length,
+          },
+          top_vendedores: topVendedores,
+          propostas_por_status: Object.entries(statusMap).map(([status, count]) => ({ status, count })),
+        });
+      }
+
 
       default:
         return JSON.stringify({ erro: `Tool "${name}" não implementada` });
