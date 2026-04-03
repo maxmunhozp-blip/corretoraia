@@ -6,6 +6,7 @@ export function drawCover(doc: jsPDF, dados: DadosProposta) {
   const { operadora, headline } = splitOperatorProduct(dados);
   const clientName = safeText(dados.empresa || dados.cliente_nome);
   const economyValue = getEconomy(dados);
+  const corretoraName = dados.corretora_nome || "CORA";
 
   // Background
   doc.setFillColor(...MARSALA_DARK);
@@ -17,11 +18,11 @@ export function drawCover(doc: jsPDF, dados: DadosProposta) {
   doc.setFillColor(...CREAM);
   doc.roundedRect(M, 78, CW, 176, 8, 8, "F");
 
-  // Top branding
+  // Top branding — corretora name (logo would need async image loading)
   doc.setTextColor(...WHITE);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("CORA", M, 24);
+  doc.text(corretoraName.toUpperCase(), M, 24);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text("Proposta corporativa gerada pela Miranda", M, 31);
@@ -50,16 +51,25 @@ export function drawCover(doc: jsPDF, dados: DadosProposta) {
   const clientLines = doc.splitTextToSize(clientName, CW - 28);
   doc.text(clientLines, M + 10, 102);
 
+  // CNPJ do cliente (if available)
+  let headlineStartY = 120 + (clientLines.length - 1) * 7;
+  if (dados.cnpj) {
+    doc.setTextColor(...TEXT_MUTED);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(`CNPJ: ${dados.cnpj}`, M + 10, headlineStartY);
+    headlineStartY += 8;
+  }
+
   // Headline
-  const headlineY = 120 + (clientLines.length - 1) * 7;
   doc.setTextColor(...TEXT_MUTED);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10.5);
   const headlineLines = doc.splitTextToSize(headline, CW - 28);
-  doc.text(headlineLines, M + 10, headlineY);
+  doc.text(headlineLines, M + 10, headlineStartY);
 
   // Summary
-  const summaryY = headlineY + headlineLines.length * 6 + 12;
+  const summaryY = headlineStartY + headlineLines.length * 6 + 12;
   doc.setTextColor(...TEXT_BODY);
   doc.setFontSize(10);
   const summaryLines = doc.splitTextToSize(
@@ -102,12 +112,15 @@ export function drawCover(doc: jsPDF, dados: DadosProposta) {
   doc.setFontSize(8.5);
   doc.text("Operadora", M + 10, 236);
   doc.text("Acomodação", M + 72, 236);
-  doc.text("Gerado em", PAGE_W - M - 10, 236, { align: "right" });
+  doc.text("Vigência", PAGE_W - M - 10, 236, { align: "right" });
 
   doc.setTextColor(...TEXT_DARK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.text(safeText(operadora), M + 10, 245);
   doc.text(safeText(dados.acomodacao), M + 72, 245);
-  doc.text(fmtDate(dados.created_at, "dd/MM/yyyy"), PAGE_W - M - 10, 245, { align: "right" });
+
+  // Vigência value
+  const vigenciaText = dados.vigencia || fmtDate(dados.created_at, "dd/MM/yyyy");
+  doc.text(vigenciaText, PAGE_W - M - 10, 245, { align: "right" });
 }

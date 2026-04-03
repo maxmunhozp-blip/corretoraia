@@ -57,6 +57,20 @@ export function drawNarrativeAndSignature(doc: jsPDF, dados: DadosProposta) {
 
   y = (doc as any).lastAutoTable.finalY + 18;
 
+  // ── Vigência ──
+  if (dados.vigencia) {
+    doc.setFillColor(...SAND);
+    doc.roundedRect(M, y, CW, 16, 4, 4, "F");
+    doc.setTextColor(...MARSALA_DARK);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Vigência:", M + 8, y + 10);
+    doc.setTextColor(...TEXT_DARK);
+    doc.setFont("helvetica", "normal");
+    doc.text(dados.vigencia, M + 40, y + 10);
+    y += 22;
+  }
+
   // ── Assinatura Comercial ──
   drawSectionTitle(doc, "Assinatura Comercial", y);
   y += 18;
@@ -67,7 +81,7 @@ export function drawNarrativeAndSignature(doc: jsPDF, dados: DadosProposta) {
   const sigLeftX = M + 10;
   const sigRightX = PAGE_W - M - sigLineW - 10;
 
-  // Left signature
+  // Left signature — corretor
   doc.line(sigLeftX, y, sigLeftX + sigLineW, y);
   doc.setTextColor(...TEXT_DARK);
   doc.setFont("helvetica", "bold");
@@ -76,9 +90,16 @@ export function drawNarrativeAndSignature(doc: jsPDF, dados: DadosProposta) {
   doc.setTextColor(...TEXT_MUTED);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.text("Consultor(a) comercial · Cora", sigLeftX + sigLineW / 2, y + 11, { align: "center" });
+  const corretoraLabel = dados.corretora_nome
+    ? `Consultor(a) comercial · ${dados.corretora_nome}`
+    : "Consultor(a) comercial · Cora";
+  doc.text(corretoraLabel, sigLeftX + sigLineW / 2, y + 11, { align: "center" });
+  if (dados.corretora_cnpj) {
+    doc.setFontSize(6.5);
+    doc.text(`CNPJ: ${dados.corretora_cnpj}`, sigLeftX + sigLineW / 2, y + 15.5, { align: "center" });
+  }
 
-  // Right signature
+  // Right signature — cliente
   doc.line(sigRightX, y, sigRightX + sigLineW, y);
   doc.setTextColor(...TEXT_DARK);
   doc.setFont("helvetica", "bold");
@@ -88,8 +109,12 @@ export function drawNarrativeAndSignature(doc: jsPDF, dados: DadosProposta) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.text("Cliente / Representante legal", sigRightX + sigLineW / 2, y + 11, { align: "center" });
+  if (dados.cnpj) {
+    doc.setFontSize(6.5);
+    doc.text(`CNPJ: ${dados.cnpj}`, sigRightX + sigLineW / 2, y + 15.5, { align: "center" });
+  }
 
-  y += 22;
+  y += 24;
 
   // Location / date box
   doc.setFillColor(...SAND);
@@ -97,7 +122,8 @@ export function drawNarrativeAndSignature(doc: jsPDF, dados: DadosProposta) {
   doc.setTextColor(...TEXT_BODY);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  doc.text("Local: ________________________________________", M + 8, y + 9);
+  const cidade = dados.corretora_cidade || "________________";
+  doc.text(`Local: ${cidade}`, M + 8, y + 9);
   doc.text(`Data: ${fmtDate(undefined, "dd/MM/yyyy")}`, M + 8, y + 18);
   doc.setTextColor(...TEXT_MUTED);
   doc.setFont("helvetica", "italic");

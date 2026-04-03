@@ -4,6 +4,8 @@ import { MARSALA, MARSALA_DARK, CREAM, WHITE, TEXT_MUTED, BORDER, PAGE_W, PAGE_H
 import { safeText, type DadosProposta } from "./helpers";
 
 export function drawInnerHeader(doc: jsPDF, title: string, dados: DadosProposta) {
+  const corretoraName = dados.corretora_nome || "CORA";
+
   doc.setFillColor(...CREAM);
   doc.rect(0, 0, PAGE_W, PAGE_H, "F");
 
@@ -13,7 +15,7 @@ export function drawInnerHeader(doc: jsPDF, title: string, dados: DadosProposta)
   doc.setTextColor(...WHITE);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("CORA", M, 15);
+  doc.text(corretoraName.toUpperCase(), M, 15);
   doc.setFontSize(11);
   doc.text(title, PAGE_W / 2, 15, { align: "center" });
 
@@ -31,14 +33,25 @@ export function drawSectionTitle(doc: jsPDF, title: string, y: number) {
   doc.text(title, M, y + 5);
 }
 
-export function drawFooter(doc: jsPDF, cover = false, pageNum?: number, totalPages?: number) {
+export function drawFooter(doc: jsPDF, cover = false, pageNum?: number, totalPages?: number, dados?: DadosProposta) {
   const footerY = PAGE_H - 10;
   doc.setDrawColor(...(cover ? WHITE : BORDER));
   doc.line(M, footerY - 5, PAGE_W - M, footerY - 5);
+
+  const corretoraName = dados?.corretora_nome || "Cora";
+  const corretoraInfo: string[] = [];
+  if (dados?.corretora_cnpj) corretoraInfo.push(`CNPJ ${dados.corretora_cnpj}`);
+  if (dados?.corretora_telefone) corretoraInfo.push(dados.corretora_telefone);
+  if (dados?.corretora_email) corretoraInfo.push(dados.corretora_email);
+
+  const leftText = corretoraInfo.length > 0
+    ? `${corretoraName} · ${corretoraInfo.join(" · ")}`
+    : `Documento gerado automaticamente pela Miranda IA · ${corretoraName}`;
+
   doc.setTextColor(...(cover ? WHITE : TEXT_MUTED));
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.text("Documento gerado automaticamente pela Miranda IA · Cora", M, footerY);
+  doc.setFontSize(7);
+  doc.text(leftText, M, footerY, { maxWidth: PAGE_W - M * 2 - 40 });
 
   const rightText = pageNum && totalPages
     ? `${format(new Date(), "dd/MM/yyyy HH:mm")}  ·  ${pageNum}/${totalPages}`
