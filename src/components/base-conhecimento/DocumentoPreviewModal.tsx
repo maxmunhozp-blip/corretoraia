@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { FileText, Globe, Image as ImageIcon, Download, X, ExternalLink, Mail, Send, CheckCircle2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { FileText, Globe, Image as ImageIcon, Download, X, ExternalLink, Mail, Send, CheckCircle2, ZoomIn, ZoomOut, RotateCw, Maximize2, ChevronLeft, ChevronRight } from "lucide-react";
+import * as pdfjsLib from "pdfjs-dist";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
