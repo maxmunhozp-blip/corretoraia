@@ -71,7 +71,7 @@ export default function BaseConhecimento() {
       ) : documentos && documentos.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {documentos.map((doc, i) => (
-            <DocumentoCard key={doc.id} doc={doc as any} index={i} />
+            <DocumentoCard key={doc.id} doc={doc as any} index={i} searchQuery={search} />
           ))}
         </div>
       ) : (
