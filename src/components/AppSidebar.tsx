@@ -13,6 +13,7 @@ import {
   LogOut,
   Sparkles,
   Shield,
+  CreditCard,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
