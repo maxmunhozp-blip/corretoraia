@@ -85,7 +85,7 @@ const App = () => (
                 <Route path="/master/usuarios" element={<MasterUsuarios />} />
                 <Route path="/master/planos" element={<MasterPlanos />} />
                 <Route path="/master/financeiro" element={<MasterFinanceiro />} />
-                <Route path="/master/configuracoes" element={<Configuracoes />} />
+                <Route path="/master/configuracoes" element={<MasterConfiguracoes />} />
               </Route>
               <Route path="/ranking/tv" element={<ProtectedRoute><RankingTV /></ProtectedRoute>} />
               <Route path="/p/:slug" element={<PropostaPublica />} />
