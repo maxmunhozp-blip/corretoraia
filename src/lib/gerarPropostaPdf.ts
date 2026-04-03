@@ -31,11 +31,11 @@ export function gerarPropostaPdf(dados: import("./pdf/helpers").DadosProposta): 
   doc.addPage();
   drawNarrativeAndSignature(doc, dados);
 
-  // Footers with page numbers
+  // Footers with page numbers + corretora info
   const total = doc.getNumberOfPages();
   for (let page = 1; page <= total; page += 1) {
     doc.setPage(page);
-    drawFooter(doc, page === 1, page, total);
+    drawFooter(doc, page === 1, page, total, dados);
   }
 
   return doc.output("blob");

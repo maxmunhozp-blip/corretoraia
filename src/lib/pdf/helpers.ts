@@ -29,6 +29,7 @@ export interface OperatorProduct {
 export interface DadosProposta {
   cliente_nome: string;
   empresa?: string;
+  cnpj?: string;
   vidas?: number;
   valor_estimado?: number;
   valor_atual?: number;
@@ -44,6 +45,13 @@ export interface DadosProposta {
   compra_carencia?: string;
   idades?: string;
   created_at?: string;
+  vigencia?: string;
+  corretora_nome?: string;
+  corretora_cnpj?: string;
+  corretora_telefone?: string;
+  corretora_email?: string;
+  corretora_logo_url?: string;
+  corretora_cidade?: string;
 }
 
 export function splitOperatorProduct(dados: DadosProposta): OperatorProduct {
