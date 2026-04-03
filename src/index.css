@@ -66,27 +66,31 @@
 @layer utilities {
   .animate-page-in {
     animation: pageIn 0.2s ease-out;
-}
-
-@keyframes staggerIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .animate-msg-in {
+    animation: msgIn 0.3s ease-out;
   }
-}
+  .animate-miranda-pulse {
+    animation: mirandaPulse 2.5s ease-in-out infinite;
+  }
 }
 
 @keyframes pageIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes staggerIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mirandaPulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(1 30% 45% / 0.4); }
+  50% { box-shadow: 0 0 0 10px hsl(1 30% 45% / 0); }
 }
