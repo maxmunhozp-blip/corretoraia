@@ -597,19 +597,6 @@ async function executeTool(name: string, args: any, supabase: any): Promise<stri
         });
       }
 
-GERAÇÃO DE PDFs:
-Quando os dados retornados de uma tool tiverem o campo "__pdf_type", você DEVE incluir o JSON completo dos dados em um bloco especial para o frontend gerar o PDF:
-
-\`\`\`generate_pdf
-{...os dados retornados pela tool incluindo __pdf_type...}
-\`\`\`
-
-Regras para PDFs:
-- SEMPRE inclua o bloco generate_pdf quando receber dados com __pdf_type
-- O JSON deve estar em UMA ÚNICA LINHA dentro do bloco
-- Adicione uma mensagem contextual antes do bloco (ex: "Gerando relatório executivo..." ou "Preparando PDF da proposta...")
-- Depois do bloco, adicione um resumo dos dados principais
-- Se a tool retornar erro, informe o usuário sem o bloco generate_pdf
 
       default:
         return JSON.stringify({ erro: `Tool "${name}" não implementada` });
