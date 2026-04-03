@@ -3,6 +3,7 @@ import { Sparkles, X, Send, Database, Search, RefreshCw, FileText, BarChart3, Al
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
+import { MirandaChart, parseMessageWithCharts } from "./MirandaChart";
 
 interface Message {
   role: "assistant" | "user";
@@ -283,9 +284,15 @@ export function MirandaPanel({
                   M
                 </div>
                 <div className="max-w-[85%] rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground leading-relaxed">
-                  <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
+                  {parseMessageWithCharts(msg.content).map((segment, si) =>
+                    segment.type === "chart" ? (
+                      <MirandaChart key={si} data={segment.data} />
+                    ) : (
+                      <div key={si} className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
+                        <ReactMarkdown>{segment.content}</ReactMarkdown>
+                      </div>
+                    )
+                  )}
                   {streaming && i === messages.length - 1 && <BlinkingCursor />}
                 </div>
               </div>
