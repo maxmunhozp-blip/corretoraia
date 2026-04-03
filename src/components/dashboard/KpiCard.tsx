@@ -32,9 +32,9 @@ export function KpiCard({
 
   return (
     <div
-      className="rounded-lg border border-border bg-card p-5 flex flex-col gap-3 opacity-0"
+      className={`rounded-lg border border-border bg-card p-5 flex flex-col gap-3 opacity-0 ${className || ""}`}
       style={{
-        animation: `staggerIn 0.4s ease-out ${index * 100}ms forwards`,
+        animation: `staggerIn 0.4s ease-out ${idx * 100}ms forwards`,
       }}
     >
       <div className="flex items-center justify-between">
