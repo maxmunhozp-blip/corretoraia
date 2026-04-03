@@ -22,16 +22,20 @@ export function DownloadCard({ filename, size, url }: DownloadCardProps) {
         <p className="text-xs font-semibold text-foreground truncate">{filename}</p>
         <p className="text-[10px] text-muted-foreground">{formatSize(size)}</p>
       </div>
-      <a
-        href={url}
-        download={filename}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        onClick={() => {
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }}
         className="flex items-center gap-1.5 rounded-lg bg-brand text-brand-foreground px-3 py-2 text-xs font-medium hover:bg-brand-hover transition-colors shrink-0"
       >
         <Download className="h-3.5 w-3.5" />
         Baixar PDF
-      </a>
+      </button>
     </div>
   );
 }
