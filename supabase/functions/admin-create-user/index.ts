@@ -203,15 +203,7 @@ Deno.serve(async (req) => {
       return respondFormError(authError.message || "Erro ao convidar usuário");
     }
 
-    const { data: existingProfile } = await adminClient
-      .from("profiles")
-      .select("id")
-      .eq("id", authData.user.id)
-      .maybeSingle();
-
-    if (existingProfile) {
-      return respondFormError("Este e-mail já está cadastrado no sistema.");
-    }
+    // upsert handles trigger-created profiles gracefully
 
     const profileError = await createProfileForUser(authData.user.id);
 
