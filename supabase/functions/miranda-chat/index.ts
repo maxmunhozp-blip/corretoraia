@@ -537,95 +537,56 @@ Página atual: ${contexto_pagina || "não informada"}
 Propostas ativas: ${propostasAtivas || 0}
 Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
-    // Agentic loop: call AI, process tool calls, repeat
-    let conversationMessages: any[] = [
+    // Agentic loop: call AI with tools (non-streaming), execute tools, then stream final answer
+    const initialMessages: any[] = [
       { role: "system", content: systemPrompt },
       ...messages,
     ];
 
-    const MAX_ITERATIONS = 5;
-    let iteration = 0;
+    // Step 1: Non-streaming call to determine if tools are needed
+    const toolResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-5-mini",
+        messages: initialMessages,
+        tools,
+        stream: false,
+      }),
+    });
 
-    while (iteration < MAX_ITERATIONS) {
-      iteration++;
-
-      const isLastIteration = iteration === MAX_ITERATIONS;
-
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: conversationMessages,
-          tools: isLastIteration ? undefined : tools,
-          stream: false,
-        }),
+    if (!toolResponse.ok) {
+      if (toolResponse.status === 429) {
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (toolResponse.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const t = await toolResponse.text();
+      console.error("AI gateway error:", toolResponse.status, t);
+      return new Response(JSON.stringify({ error: "Erro no serviço de IA" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        const t = await response.text();
-        console.error("AI gateway error:", response.status, t);
-        return new Response(JSON.stringify({ error: "Erro no serviço de IA" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const toolData = await toolResponse.json();
+    const toolChoice = toolData.choices?.[0];
+    const toolMessage = toolChoice?.message;
 
-      const data = await response.json();
-      const choice = data.choices?.[0];
+    // Step 2: If tool calls exist, execute them and collect results
+    let toolResultsContext = "";
 
-      if (!choice) {
-        return new Response(JSON.stringify({ error: "Resposta vazia da IA" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    if (toolMessage?.tool_calls?.length) {
+      const results: string[] = [];
 
-      const message = choice.message;
-
-      // If no tool calls, we have the final answer
-      if (!message.tool_calls?.length || choice.finish_reason === "stop") {
-        // Stream the final response
-        const finalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${lovableKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
-            messages: [...conversationMessages, ...(message.content ? [{ role: "assistant", content: message.content }] : [])].filter(m => m.content || m.tool_calls),
-            stream: true,
-          }),
-        });
-
-        if (!finalResponse.ok) {
-          // Fallback: return non-streamed content
-          return new Response(JSON.stringify({ choices: [{ message: { content: message.content || "Desculpe, não consegui processar sua solicitação." } }] }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        return new Response(finalResponse.body, {
-          headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-        });
-      }
-
-      // Process tool calls
-      conversationMessages.push(message);
-
-      for (const toolCall of message.tool_calls) {
+      for (const toolCall of toolMessage.tool_calls) {
         const fnName = toolCall.function.name;
         let fnArgs: any = {};
         try {
@@ -634,20 +595,68 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
         console.log(`Executing tool: ${fnName}`, fnArgs);
         const result = await executeTool(fnName, fnArgs, supabase);
-
-        conversationMessages.push({
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: result,
-        });
+        console.log(`Tool result length: ${result.length}`);
+        results.push(`[Resultado de ${fnName}]: ${result}`);
       }
 
-      // Continue loop — next iteration will call AI again with tool results
+      toolResultsContext = "\n\n--- DADOS CONSULTADOS ---\n" + results.join("\n\n");
+      console.log(`Tool results context length: ${toolResultsContext.length}`);
     }
 
-    // Should not reach here, but safety fallback
-    return new Response(JSON.stringify({ error: "Limite de iterações atingido" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Step 3: Stream final response with tool results injected into context
+    const finalMessages: any[] = [
+      { role: "system", content: systemPrompt + toolResultsContext },
+      ...messages,
+    ];
+
+    // If the model already gave a direct answer (no tools), include context hint
+    if (!toolMessage?.tool_calls?.length && toolMessage?.content) {
+      // Direct answer — stream it as SSE
+      const content = toolMessage.content;
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          const chunkSize = 8;
+          for (let i = 0; i < content.length; i += chunkSize) {
+            const chunk = content.slice(i, i + chunkSize);
+            const sseChunk = `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: chunk } }] })}\n\n`;
+            controller.enqueue(encoder.encode(sseChunk));
+            await new Promise(r => setTimeout(r, 15));
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    // Stream the final AI response with tool data in context
+    const finalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-5-mini",
+        messages: finalMessages,
+        stream: true,
+      }),
+    });
+
+    if (!finalResponse.ok) {
+      const fallback = toolMessage?.content || "Desculpe, não consegui processar sua solicitação.";
+      const encoder = new TextEncoder();
+      const sseData = `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: fallback } }] })}\n\ndata: [DONE]\n\n`;
+      return new Response(encoder.encode(sseData), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    return new Response(finalResponse.body, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
     console.error("miranda-chat error:", e);
