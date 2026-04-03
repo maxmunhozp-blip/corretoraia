@@ -147,36 +147,6 @@ const tools = [
       },
     },
   },
-  {
-    type: "function",
-    function: {
-      name: "gerar_grafico",
-      description: "Gera dados para um gráfico visual. Use quando o usuário pedir comparativos, tendências, distribuições ou qualquer análise visual. Tipos: bar (barras), line (linhas), pie (pizza/donut), area (área). O gráfico será renderizado inline no chat.",
-      parameters: {
-        type: "object",
-        properties: {
-          tipo: { type: "string", enum: ["bar", "line", "pie", "area"], description: "Tipo do gráfico" },
-          titulo: { type: "string", description: "Título do gráfico" },
-          dados: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                nome: { type: "string", description: "Label do item (eixo X ou fatia)" },
-                valor: { type: "number", description: "Valor principal" },
-                valor2: { type: "number", description: "Segundo valor para comparativos (opcional)" },
-              },
-              required: ["nome", "valor"],
-            },
-            description: "Array de dados para o gráfico",
-          },
-          label_valor: { type: "string", description: "Label para o valor principal (ex: 'Vendas', 'Propostas')" },
-          label_valor2: { type: "string", description: "Label para o segundo valor (ex: 'Meta', 'Período anterior')" },
-        },
-        required: ["tipo", "titulo", "dados", "label_valor"],
-      },
-    },
-  },
 ];
 
 // Tool implementations
