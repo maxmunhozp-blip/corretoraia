@@ -520,6 +520,8 @@ export default function MirandaPage() {
                         <DownloadCard key={si} filename={seg.data.filename} size={seg.data.size} url={seg.data.url} />
                       ) : seg.type === "generate_pdf" ? (
                         <PdfGeneratorCard key={si} data={seg.data} />
+                      ) : seg.type === "pesquisa_cliente" ? (
+                        <PesquisaClienteCard key={si} data={seg.data} />
                       ) : (
                         <MirandaMarkdown key={si} content={seg.content} />
                       )
