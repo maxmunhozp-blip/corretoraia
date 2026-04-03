@@ -1,11 +1,11 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   FolderOpen, FileText, FileSpreadsheet, Image, File,
-  CheckCircle2, XCircle, Loader2, Upload, Sparkles, Tag,
+  CheckCircle2, XCircle, Loader2, Upload, Sparkles, Tag, PartyPopper,
 } from "lucide-react";
 import { useCreateConhecimento, useUploadConhecimento, useProcessarConhecimento } from "@/hooks/useBaseConhecimento";
 import { supabase } from "@/integrations/supabase/client";
