@@ -377,18 +377,25 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "pesquisar_perfil_cliente",
-      description: "Pesquisa dados públicos de uma empresa na internet (DuckDuckGo, ReceitaWS, site oficial) e usa IA para criar um perfil comercial personalizado para propostas de plano de saúde. Use quando o usuário pedir para pesquisar um cliente, personalizar proposta, ou quando mencionar CNPJ/empresa para gerar proposta personalizada.",
+      name: "salvar_memoria",
+      description: "Salva uma nova memória/aprendizado da Miranda. Use quando o usuário der feedback positivo ou negativo sobre algo (design, tom, layout, etc), quando aprender uma preferência da corretora, ou quando quiser registrar algo para lembrar depois.",
       parameters: {
         type: "object",
         properties: {
-          nome: { type: "string", description: "Nome da empresa/cliente" },
-          cnpj: { type: "string", description: "CNPJ da empresa (opcional)" },
-          cidade: { type: "string", description: "Cidade da empresa (opcional)" },
-          site: { type: "string", description: "URL do site oficial (opcional)" },
+          tipo: { type: "string", description: "Tipo: preferencia_design, feedback_positivo, feedback_negativo, cor, tipografia, layout, tom_escrita, geral" },
+          titulo: { type: "string", description: "Título curto da memória (ex: 'Prefere tabelas sem borda')" },
+          conteudo: { type: "string", description: "Descrição detalhada da memória" },
         },
-        required: ["nome"],
+        required: ["tipo", "titulo", "conteudo"],
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ler_memoria",
+      description: "Lê todas as memórias e skills da Miranda para a corretora atual. Use para consultar preferências de design, tom de escrita, feedbacks anteriores.",
+      parameters: { type: "object", properties: {} },
     },
   },
 ];
