@@ -521,6 +521,47 @@ export type Database = {
           },
         ]
       }
+      miranda_memoria: {
+        Row: {
+          ativo: boolean | null
+          atualizado_em: string | null
+          conteudo: string
+          corretora_id: string | null
+          criado_em: string | null
+          id: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          conteudo: string
+          corretora_id?: string | null
+          criado_em?: string | null
+          id?: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          conteudo?: string
+          corretora_id?: string | null
+          criado_em?: string | null
+          id?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "miranda_memoria_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       miranda_mensagens: {
         Row: {
           content: string
@@ -549,6 +590,47 @@ export type Database = {
             columns: ["conversa_id"]
             isOneToOne: false
             referencedRelation: "miranda_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      miranda_skills: {
+        Row: {
+          ativo: boolean | null
+          conteudo_md: string
+          corretora_id: string | null
+          criado_em: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          versao: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          conteudo_md: string
+          corretora_id?: string | null
+          criado_em?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          versao?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          conteudo_md?: string
+          corretora_id?: string | null
+          criado_em?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "miranda_skills_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
             referencedColumns: ["id"]
           },
         ]
