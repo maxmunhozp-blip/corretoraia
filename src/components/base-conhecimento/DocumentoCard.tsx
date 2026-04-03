@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FileText, Globe, Image, MoreVertical, Eye, Download, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDeleteConhecimento } from "@/hooks/useBaseConhecimento";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
