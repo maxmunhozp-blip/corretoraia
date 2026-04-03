@@ -123,19 +123,30 @@ export interface PesquisaClienteData {
   site?: string;
 }
 
+export interface PropostaCriadaData {
+  slug: string;
+  link: string;
+  cliente_nome: string;
+  economia_mensal?: number;
+  economia_percentual?: number;
+  pdf_url?: string;
+  pdf_nome?: string;
+}
+
 /**
- * Parse message content and extract chart, download, generate_pdf, and pesquisa_cliente blocks.
+ * Parse message content and extract chart, download, generate_pdf, pesquisa_cliente, and proposta_criada blocks.
  */
 export type MessageSegment =
   | { type: "text"; content: string }
   | { type: "chart"; data: ChartData }
   | { type: "download"; data: DownloadData }
   | { type: "generate_pdf"; data: GeneratePdfData }
-  | { type: "pesquisa_cliente"; data: PesquisaClienteData };
+  | { type: "pesquisa_cliente"; data: PesquisaClienteData }
+  | { type: "proposta_criada"; data: PropostaCriadaData };
 
 export function parseMessageWithCharts(content: string): MessageSegment[] {
   const segments: MessageSegment[] = [];
-  const regex = /```(chart|download|generate_pdf|pesquisa_cliente)\s*\n?([\s\S]*?)```/g;
+  const regex = /```(chart|download|generate_pdf|pesquisa_cliente|proposta_criada)\s*\n?([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
 
