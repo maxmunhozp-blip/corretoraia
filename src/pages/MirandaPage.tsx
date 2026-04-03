@@ -12,7 +12,7 @@ import { MirandaChart, parseMessageWithCharts } from "@/components/MirandaChart"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DownloadCard } from "@/components/miranda/DownloadCard";
 import { PdfUploadPreview, PdfUploadBubble } from "@/components/miranda/PdfUploadPreview";
-import { gerarRelatorioComparativo, DadosComparativo } from "@/lib/gerarRelatorioComparativo";
+import { gerarRelatorioComparativo, DadosComparativo, TemplateStyle } from "@/lib/gerarRelatorioComparativo";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
