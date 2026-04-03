@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Eye, Copy, ExternalLink, RefreshCw, Trash2, FileX, Monitor, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { getPublicProposalUrl } from "@/lib/publicAppUrl";
 
 const statusStyles: Record<string, string> = {
   ativa: "border-[hsl(1,30%,45%)] text-[hsl(1,30%,45%)]",
@@ -16,12 +17,22 @@ const statusStyles: Record<string, string> = {
 export function PropostasInterativasTab() {
   const { data: propostas, isLoading } = usePropostasInterativas();
   const updateProposta = useUpdatePropostaInterativa();
+  const [copyingSlug, setCopyingSlug] = useState<string | null>(null);
 
-  const baseUrl = window.location.origin;
+  const copyLink = async (slug: string) => {
+    try {
+      setCopyingSlug(slug);
+      await navigator.clipboard.writeText(getPublicProposalUrl(slug));
+      toast.success("Link público copiado!");
+    } catch {
+      toast.error("Erro ao copiar o link público");
+    } finally {
+      setCopyingSlug(null);
+    }
+  };
 
-  const copyLink = (slug: string) => {
-    navigator.clipboard.writeText(`${baseUrl}/p/${slug}`);
-    toast.success("Link copiado!");
+  const openLink = (slug: string) => {
+    window.open(getPublicProposalUrl(slug), "_blank", "noopener,noreferrer");
   };
 
   const renovar = async (id: string) => {
@@ -54,7 +65,7 @@ export function PropostasInterativasTab() {
             <TableHead>Visualizações</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Válida até</TableHead>
-            <TableHead>Link</TableHead>
+            <TableHead>Pública</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -68,7 +79,7 @@ export function PropostasInterativasTab() {
               </TableRow>
             ))
           ) : propostas && propostas.length > 0 ? (
-            propostas.map((p, i) => (
+            propostas.map((p) => (
               <TableRow key={p.id} className="hover:bg-surface transition-colors">
                 <TableCell className="font-medium text-foreground">
                   {p.cliente_nome}
@@ -99,19 +110,37 @@ export function PropostasInterativasTab() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => copyLink(p.slug)} className="p-1 rounded hover:bg-surface transition-colors" title="Copiar link">
+                    <button
+                      type="button"
+                      onClick={() => copyLink(p.slug)}
+                      className="p-1 rounded hover:bg-surface transition-colors"
+                      title="Copiar link público"
+                    >
                       <Copy className="h-4 w-4 text-muted-foreground" />
                     </button>
-                    <a href={`/p/${p.slug}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-surface transition-colors" title="Abrir">
+                    <button
+                      type="button"
+                      onClick={() => openLink(p.slug)}
+                      className="p-1 rounded hover:bg-surface transition-colors"
+                      title="Abrir proposta pública"
+                    >
                       <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    </a>
+                    </button>
+                    {copyingSlug === p.slug && (
+                      <span className="text-[11px] text-muted-foreground">Copiado</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <a href={`/p/${p.slug}`} target="_blank" className="p-1 rounded hover:bg-surface transition-colors" title="Preview">
+                    <button
+                      type="button"
+                      onClick={() => openLink(p.slug)}
+                      className="p-1 rounded hover:bg-surface transition-colors"
+                      title="Abrir proposta"
+                    >
                       <Eye className="h-4 w-4 text-muted-foreground" />
-                    </a>
+                    </button>
                     <button onClick={() => renovar(p.id)} className="p-1 rounded hover:bg-surface transition-colors" title="Renovar validade">
                       <RefreshCw className="h-4 w-4 text-muted-foreground" />
                     </button>

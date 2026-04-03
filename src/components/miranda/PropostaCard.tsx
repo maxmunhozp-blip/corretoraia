@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FileText, ExternalLink, Copy, Download, Check } from "lucide-react";
 import { toast } from "sonner";
+import { getPublicProposalUrl } from "@/lib/publicAppUrl";
 
 interface PropostaCardProps {
   slug: string;
@@ -22,16 +23,21 @@ export function PropostaCard({
   economiaPercentual,
 }: PropostaCardProps) {
   const [copied, setCopied] = useState(false);
+  const publicUrl = getPublicProposalUrl(slug, linkPublico);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(linkPublico);
+      await navigator.clipboard.writeText(publicUrl);
       setCopied(true);
-      toast.success("Copiado!");
+      toast.success("Link público copiado!");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Erro ao copiar");
+      toast.error("Erro ao copiar o link público");
     }
+  };
+
+  const handleOpen = () => {
+    window.open(publicUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleDownloadPdf = () => {
@@ -46,78 +52,67 @@ export function PropostaCard({
   };
 
   return (
-    <div
-      className="my-2 rounded-lg p-4"
-      style={{
-        borderLeft: "4px solid #955251",
-        background: "#F5EDEC",
-      }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-2">
-        <FileText className="h-5 w-5 shrink-0" style={{ color: "#955251" }} />
-        <span className="text-sm font-bold text-foreground">
-          Proposta gerada para {clienteNome}
-        </span>
-      </div>
-
-      {/* Economy badge */}
-      {economiaMensal != null && economiaMensal > 0 && (
-        <div className="mb-2">
-          <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-2.5 py-0.5 text-xs font-semibold">
-            Economia de R$ {economiaMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
-            {economiaPercentual != null && ` (${economiaPercentual.toFixed(1)}%)`}
-          </span>
+    <div className="my-2 rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <FileText className="h-5 w-5" />
         </div>
-      )}
 
-      {/* Separator */}
-      <div className="border-t border-[#955251]/20 my-2" />
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              Proposta gerada para {clienteNome}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              A proposta pública está pronta para abrir e enviar ao cliente.
+            </p>
+          </div>
 
-      {/* Link */}
-      <div className="flex items-center gap-2 text-xs mb-2">
-        <ExternalLink className="h-3.5 w-3.5 shrink-0" style={{ color: "#71717A" }} />
-        <span className="text-muted-foreground whitespace-nowrap">Link do dashboard:</span>
-        <a
-          href={linkPublico}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="truncate text-[#955251] underline hover:text-[#7a3f3e]"
-        >
-          {linkPublico}
-        </a>
-        <button
-          onClick={handleCopy}
-          className="shrink-0 p-1 rounded hover:bg-[#955251]/10 transition-colors"
-          title="Copiar link"
-        >
-          {copied ? (
-            <Check className="h-3.5 w-3.5 text-green-600" />
-          ) : (
-            <Copy className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
+          {economiaMensal != null && economiaMensal > 0 && (
+            <div>
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                Economia de R$ {economiaMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
+                {economiaPercentual != null && ` (${economiaPercentual.toFixed(1)}%)`}
+              </span>
+            </div>
           )}
-        </button>
-      </div>
 
-      {/* PDF download */}
-      {pdfUrl && (
-        <div className="flex items-center gap-2 text-xs mb-2">
-          <Download className="h-3.5 w-3.5 shrink-0" style={{ color: "#71717A" }} />
-          <span className="text-muted-foreground truncate">{pdfNome || `Proposta_${slug}.pdf`}</span>
-          <button
-            onClick={handleDownloadPdf}
-            className="shrink-0 px-3 py-1 rounded-md text-white text-xs font-medium transition-colors hover:opacity-90"
-            style={{ background: "#955251" }}
-          >
-            Baixar PDF
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleOpen}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Abrir proposta
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+              {copied ? "Copiado" : "Copiar link"}
+            </button>
+
+            {pdfUrl && (
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+              >
+                <Download className="h-4 w-4" />
+                Baixar PDF
+              </button>
+            )}
+          </div>
+
+          <p className="text-[11px] text-muted-foreground">
+            Link público da proposta · válido por 7 dias.
+          </p>
         </div>
-      )}
-
-      {/* Footer */}
-      <p className="text-[10px] text-muted-foreground mt-2">
-        Válida por 7 dias · Link copiável para enviar ao cliente
-      </p>
+      </div>
     </div>
   );
 }
