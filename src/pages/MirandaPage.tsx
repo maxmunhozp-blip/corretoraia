@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import {
   Sparkles, Plus, Trash2, Send, PanelRightClose, PanelRightOpen,
   FileText, BarChart3, AlertTriangle, Database, Search, RefreshCw,
-  MessageSquare, Clock, Zap,
+  MessageSquare, Clock, Zap, Paperclip,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMirandaConversas } from "@/hooks/useMirandaConversas";
@@ -10,10 +10,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { MirandaMarkdown } from "@/components/MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "@/components/MirandaChart";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DownloadCard } from "@/components/miranda/DownloadCard";
+import { PdfUploadPreview, PdfUploadBubble } from "@/components/miranda/PdfUploadPreview";
+import { gerarRelatorioComparativo, DadosComparativo } from "@/lib/gerarRelatorioComparativo";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/miranda-chat`;
+const COMPARATIVO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/miranda-gerar-comparativo`;
 
 const quickActions = [
   { label: "Relatório do dia", icon: FileText, message: "Gere um relatório executivo completo do dia de hoje com propostas, alertas, vendas e métricas." },
@@ -23,7 +28,21 @@ const quickActions = [
   { label: "Resumo de vendas", icon: Database, message: "Apresente o resumo de vendas da semana com gráficos comparativos." },
 ];
 
-/* Action indicator */
+interface DownloadInfo {
+  filename: string;
+  size: number;
+  url: string;
+}
+
+interface ChatMessage {
+  id: string;
+  role: "assistant" | "user";
+  content: string;
+  created_at: string;
+  pdfAttachment?: { filename: string; size: string };
+  download?: DownloadInfo;
+}
+
 function ActionIndicator({ action }: { action: string }) {
   const labels: Record<string, string> = {
     buscar_cliente: "Buscando dados do cliente...",
@@ -32,6 +51,8 @@ function ActionIndicator({ action }: { action: string }) {
     buscar_conhecimento: "Pesquisando base de conhecimento...",
     buscar_metricas: "Calculando métricas...",
     buscar_ranking: "Analisando ranking...",
+    gerando_comparativo: "Analisando PDF e extraindo dados...",
+    gerando_pdf: "Gerando relatório PDF profissional...",
   };
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse px-3 py-2 rounded-lg bg-surface">
@@ -45,7 +66,6 @@ function BlinkingCursor() {
   return <span className="inline-block w-[2px] h-[1em] bg-brand animate-pulse ml-0.5 align-text-bottom" />;
 }
 
-/* Stream helper */
 async function streamChat(
   messages: { role: string; content: string }[],
   onDelta: (text: string) => void,
@@ -95,6 +115,12 @@ async function streamChat(
   }
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function MirandaPage() {
   const { user } = useAuth();
   const {
@@ -108,7 +134,11 @@ export default function MirandaPage() {
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [hoveredConversa, setHoveredConversa] = useState<string | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [downloads, setDownloads] = useState<Record<string, DownloadInfo>>({});
+  const [pdfAttachments, setPdfAttachments] = useState<Record<string, { filename: string; size: string }>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -124,9 +154,122 @@ export default function MirandaPage() {
     return "buscar_metricas";
   };
 
+  const handleComparativo = async (file: File, mensagem: string) => {
+    setStreaming(true);
+    setCurrentAction("gerando_comparativo");
+
+    let activeConversaId = conversaAtiva;
+    if (!activeConversaId) {
+      activeConversaId = await novaConversa();
+      if (!activeConversaId) { setStreaming(false); return; }
+    }
+
+    // Save user message with PDF info
+    const userMsg = await salvarMensagem(activeConversaId, "user", mensagem || "Gera um relatório comparativo profissional com base nesse PDF");
+    if (userMsg) {
+      setPdfAttachments((prev) => ({ ...prev, [userMsg.id]: { filename: file.name, size: formatFileSize(file.size) } }));
+    }
+
+    // Auto-title
+    if (mensagens.filter((m) => m.role === "user").length === 0) {
+      atualizarTitulo(activeConversaId, `Comparativo - ${file.name.replace(".pdf", "")}`);
+    }
+
+    try {
+      // Convert file to base64
+      const buffer = await file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+      );
+
+      // Call edge function
+      const resp = await fetch(COMPARATIVO_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ arquivo_pdf_base64: base64, mensagem }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Erro ao processar PDF" }));
+        throw new Error(err.error);
+      }
+
+      const dados: DadosComparativo = await resp.json();
+      setCurrentAction("gerando_pdf");
+
+      // Generate PDF client-side
+      const pdfBlob = gerarRelatorioComparativo(dados);
+      const filename = `Relatorio_Comparativo_${dados.data_referencia.replace(/\//g, "_")}_${format(new Date(), "ddMMyyyy")}.pdf`;
+
+      // Upload to storage
+      const filePath = `comparativos/${user?.id}/${filename}`;
+      const { error: uploadError } = await supabase.storage
+        .from("relatorios")
+        .upload(filePath, pdfBlob, { contentType: "application/pdf", upsert: true });
+
+      if (uploadError) throw new Error("Erro ao salvar relatório: " + uploadError.message);
+
+      const { data: urlData } = supabase.storage.from("relatorios").getPublicUrl(filePath);
+      const downloadUrl = urlData.publicUrl;
+
+      // Build summary
+      const numBeneficiarios = dados.beneficiarios.length;
+      const numAlternativas = dados.beneficiarios[0]?.alternativas.length || 0;
+      const melhorEconomia = dados.consolidacao.reduce(
+        (best, c) => (c.percentual_reducao > (best?.percentual_reducao || 0) ? c : best),
+        dados.consolidacao[0]
+      );
+
+      const summary = `✅ **Relatório comparativo gerado com sucesso!**\n\nIdentifiquei **${numBeneficiarios} beneficiários** e **${numAlternativas} alternativas** de planos.\n\n${
+        melhorEconomia && melhorEconomia.percentual_reducao > 0
+          ? `A maior economia projetada é de **${melhorEconomia.reducao_mensal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/mês** (**${melhorEconomia.percentual_reducao.toFixed(1)}%**) migrando para **${melhorEconomia.plano}** (${melhorEconomia.operadora}).`
+          : ""
+      }\n\nClique abaixo para baixar o relatório:`;
+
+      setCurrentAction(null);
+
+      // Save assistant message
+      const assistantMsg = await salvarMensagem(activeConversaId, "assistant", summary);
+      if (assistantMsg) {
+        setDownloads((prev) => ({
+          ...prev,
+          [assistantMsg.id]: { filename, size: pdfBlob.size, url: downloadUrl },
+        }));
+      }
+
+      // Log activity
+      await supabase.from("atividades").insert({
+        tipo: "relatorio_gerado",
+        descricao: `Relatório comparativo gerado via Miranda: ${filename}`,
+        autor_id: user?.id,
+      });
+
+      setStreaming(false);
+    } catch (error: any) {
+      setStreaming(false);
+      setCurrentAction(null);
+      atualizarUltimaMensagem(`⚠️ ${error.message || "Erro ao gerar relatório comparativo"}`);
+      toast.error(error.message || "Erro ao gerar relatório");
+    }
+  };
+
   const send = async (text: string) => {
-    if (!text.trim() || streaming) return;
     const trimmed = text.trim();
+    if ((!trimmed && !attachedFile) || streaming) return;
+
+    // If PDF is attached, handle as comparativo
+    if (attachedFile) {
+      const file = attachedFile;
+      setAttachedFile(null);
+      setInput("");
+      await handleComparativo(file, trimmed);
+      return;
+    }
+
+    if (!trimmed) return;
     setInput("");
     setCurrentAction(detectAction(trimmed));
     setStreaming(true);
@@ -137,10 +280,8 @@ export default function MirandaPage() {
       if (!activeConversaId) { setStreaming(false); return; }
     }
 
-    // Save user message
     await salvarMensagem(activeConversaId, "user", trimmed);
 
-    // Auto-title on first user message
     if (mensagens.filter((m) => m.role === "user").length === 0) {
       const title = trimmed.length > 50 ? trimmed.slice(0, 47) + "..." : trimmed;
       atualizarTitulo(activeConversaId, title);
@@ -163,7 +304,6 @@ export default function MirandaPage() {
         setStreaming(false);
         setCurrentAction(null);
         if (assistantSoFar && cId) {
-          // Save to DB without appending to state (already there via atualizarUltimaMensagem)
           await supabase.from("miranda_mensagens").insert({ conversa_id: cId, role: "assistant", content: assistantSoFar });
         }
       },
@@ -180,10 +320,25 @@ export default function MirandaPage() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === "application/pdf") {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("PDF muito grande. Máximo: 10MB");
+        return;
+      }
+      setAttachedFile(file);
+    } else if (file) {
+      toast.error("Apenas arquivos PDF são aceitos");
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const activeTools = [
     { name: "Banco de Dados", desc: "Clientes, propostas, alertas", icon: Database },
     { name: "Base de Conhecimento", desc: "Documentos e regras", icon: Search },
     { name: "Métricas e Ranking", desc: "KPIs e performance", icon: BarChart3 },
+    { name: "Gerador de Relatórios", desc: "Comparativos em PDF", icon: FileText },
     { name: "Ações", desc: "Criar alertas, atualizar dados", icon: Zap },
   ];
 
@@ -245,7 +400,6 @@ export default function MirandaPage() {
 
       {/* CENTRAL CHAT */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Chat header */}
         <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-brand" />
@@ -264,10 +418,8 @@ export default function MirandaPage() {
           </button>
         </div>
 
-        {/* Messages area */}
         <ScrollArea className="flex-1">
           <div className="max-w-3xl mx-auto px-6 py-6 space-y-4">
-            {/* Welcome when no conversation */}
             {!conversaAtiva && mensagens.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 space-y-6">
                 <div className="h-16 w-16 rounded-2xl bg-brand-light flex items-center justify-center">
@@ -276,7 +428,7 @@ export default function MirandaPage() {
                 <div className="text-center">
                   <h2 className="text-xl font-bold text-foreground mb-2">Olá! Sou a Miranda</h2>
                   <p className="text-sm text-muted-foreground max-w-md">
-                    Sua assistente de IA com acesso completo aos dados da Cora. Pergunte sobre clientes, propostas, métricas ou peça relatórios.
+                    Sua assistente de IA com acesso completo aos dados da Cora. Pergunte sobre clientes, propostas, métricas ou envie um PDF de comparativo para gerar relatórios profissionais.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center max-w-lg">
@@ -290,6 +442,13 @@ export default function MirandaPage() {
                       {a.label}
                     </button>
                   ))}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1.5 rounded-lg border border-brand/20 bg-brand-light px-3 py-2 text-xs font-medium text-brand hover:bg-brand hover:text-brand-foreground transition-colors"
+                  >
+                    <Paperclip className="h-3.5 w-3.5" />
+                    Comparativo PDF
+                  </button>
                 </div>
               </div>
             )}
@@ -309,13 +468,28 @@ export default function MirandaPage() {
                         <MirandaMarkdown key={si} content={seg.content} />
                       )
                     )}
+                    {downloads[msg.id] && (
+                      <DownloadCard
+                        filename={downloads[msg.id].filename}
+                        size={downloads[msg.id].size}
+                        url={downloads[msg.id].url}
+                      />
+                    )}
                     {streaming && i === mensagens.length - 1 && <BlinkingCursor />}
                   </div>
                 </div>
               ) : (
                 <div key={msg.id || i} className="flex justify-end">
-                  <div className="max-w-[85%] rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground leading-relaxed">
-                    {msg.content}
+                  <div className="max-w-[85%]">
+                    {pdfAttachments[msg.id] && (
+                      <PdfUploadBubble
+                        filename={pdfAttachments[msg.id].filename}
+                        size={pdfAttachments[msg.id].size}
+                      />
+                    )}
+                    <div className="rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground leading-relaxed">
+                      {msg.content}
+                    </div>
                   </div>
                 </div>
               )
@@ -334,25 +508,45 @@ export default function MirandaPage() {
           </div>
         </ScrollArea>
 
-        {/* Input */}
+        {/* Input area */}
         <div className="border-t border-border bg-card px-6 py-4">
-          <div className="max-w-3xl mx-auto flex items-center gap-3">
-            <div className="flex-1 flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 focus-within:ring-2 focus-within:ring-brand/20 focus-within:border-brand transition-all">
+          <div className="max-w-3xl mx-auto">
+            {attachedFile && (
+              <PdfUploadPreview file={attachedFile} onRemove={() => setAttachedFile(null)} />
+            )}
+            <div className="flex items-center gap-3">
               <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKey}
-                placeholder="Pergunte para a Miranda..."
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleFileSelect}
               />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={streaming}
+                className="h-10 w-10 rounded-xl border border-border flex items-center justify-center hover:bg-surface transition-colors disabled:opacity-40 shrink-0"
+                title="Anexar PDF"
+              >
+                <Paperclip className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <div className="flex-1 flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 focus-within:ring-2 focus-within:ring-brand/20 focus-within:border-brand transition-all">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKey}
+                  placeholder={attachedFile ? "Instrução para o relatório (opcional)..." : "Pergunte para a Miranda..."}
+                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                />
+              </div>
+              <button
+                onClick={() => send(input)}
+                disabled={(!input.trim() && !attachedFile) || streaming}
+                className="h-10 w-10 rounded-xl bg-brand flex items-center justify-center hover:bg-brand-hover transition-colors disabled:opacity-40"
+              >
+                <Send className="h-4 w-4 text-brand-foreground" />
+              </button>
             </div>
-            <button
-              onClick={() => send(input)}
-              disabled={!input.trim() || streaming}
-              className="h-10 w-10 rounded-xl bg-brand flex items-center justify-center hover:bg-brand-hover transition-colors disabled:opacity-40"
-            >
-              <Send className="h-4 w-4 text-brand-foreground" />
-            </button>
           </div>
         </div>
       </div>
@@ -366,7 +560,6 @@ export default function MirandaPage() {
 
           <ScrollArea className="flex-1 px-4 py-4">
             <div className="space-y-5">
-              {/* Active tools */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ferramentas ativas</p>
                 <div className="space-y-2">
@@ -382,7 +575,6 @@ export default function MirandaPage() {
                 </div>
               </div>
 
-              {/* Quick actions */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ações rápidas</p>
                 <div className="space-y-1.5">
@@ -399,7 +591,6 @@ export default function MirandaPage() {
                 </div>
               </div>
 
-              {/* Session info */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sessão</p>
                 <div className="space-y-2 text-xs text-muted-foreground">
