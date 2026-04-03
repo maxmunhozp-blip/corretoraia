@@ -180,6 +180,56 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos: {
+        Row: {
+          arquivo_path: string | null
+          categoria: string
+          created_at: string
+          descricao: string | null
+          fonte_url: string | null
+          id: string
+          operadora_id: string | null
+          status: string
+          tipo_arquivo: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          arquivo_path?: string | null
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          fonte_url?: string | null
+          id?: string
+          operadora_id?: string | null
+          status?: string
+          tipo_arquivo?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          arquivo_path?: string | null
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          fonte_url?: string | null
+          id?: string
+          operadora_id?: string | null
+          status?: string
+          tipo_arquivo?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_operadora_id_fkey"
+            columns: ["operadora_id"]
+            isOneToOne: false
+            referencedRelation: "operadoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operadoras: {
         Row: {
           ativo: boolean
