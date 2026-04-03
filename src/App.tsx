@@ -18,6 +18,7 @@ import Acessos from "./pages/Acessos";
 import Desenvolvimento from "./pages/Desenvolvimento";
 import Configuracoes from "./pages/Configuracoes";
 import Gestao from "./pages/Gestao";
+import MirandaPage from "./pages/MirandaPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
