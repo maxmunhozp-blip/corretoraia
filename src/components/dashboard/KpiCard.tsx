@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { useCountUp } from "@/hooks/useCountUp";
 
-interface KpiCardProps {
+export interface KpiCardProps {
   title: string;
   value: number;
   prefix?: string;
@@ -11,7 +11,8 @@ interface KpiCardProps {
   badgePositive?: boolean;
   subtitle?: string;
   icon: LucideIcon;
-  index: number;
+  index?: number;
+  className?: string;
   children?: ReactNode;
 }
 
