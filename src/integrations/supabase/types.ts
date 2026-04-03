@@ -293,6 +293,54 @@ export type Database = {
           },
         ]
       }
+      gestao_executivos: {
+        Row: {
+          ativo: boolean
+          cargo: string
+          created_at: string
+          email: string | null
+          empresa: string | null
+          foto_url: string | null
+          id: string
+          linkedin: string | null
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cargo?: string
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          foto_url?: string | null
+          id?: string
+          linkedin?: string | null
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cargo?: string
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          foto_url?: string | null
+          id?: string
+          linkedin?: string | null
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       operadoras: {
         Row: {
           ativo: boolean
