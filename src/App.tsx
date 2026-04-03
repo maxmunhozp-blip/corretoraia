@@ -28,6 +28,7 @@ import MasterCorretoras from "./pages/master/MasterCorretoras";
 import MasterUsuarios from "./pages/master/MasterUsuarios";
 import MasterPlanos from "./pages/master/MasterPlanos";
 import MasterFinanceiro from "./pages/master/MasterFinanceiro";
+import MasterConfiguracoes from "./pages/master/MasterConfiguracoes";
 import UsuariosCorretora from "./pages/UsuariosCorretora";
 import Landing from "./pages/Landing";
 import Cadastro from "./pages/Cadastro";
@@ -84,7 +85,7 @@ const App = () => (
                 <Route path="/master/usuarios" element={<MasterUsuarios />} />
                 <Route path="/master/planos" element={<MasterPlanos />} />
                 <Route path="/master/financeiro" element={<MasterFinanceiro />} />
-                <Route path="/master/configuracoes" element={<Configuracoes />} />
+                <Route path="/master/configuracoes" element={<MasterConfiguracoes />} />
               </Route>
               <Route path="/ranking/tv" element={<ProtectedRoute><RankingTV /></ProtectedRoute>} />
               <Route path="/p/:slug" element={<PropostaPublica />} />
