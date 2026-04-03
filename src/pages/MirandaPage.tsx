@@ -434,8 +434,6 @@ export default function MirandaPage() {
               <div
                 key={c.id}
                 onClick={() => { if (editingConversa !== c.id) carregarMensagens(c.id); }}
-                onMouseEnter={() => setHoveredConversa(c.id)}
-                onMouseLeave={() => setHoveredConversa(null)}
                 className={`group relative flex items-center gap-2 rounded-lg px-3 py-2.5 cursor-pointer text-sm transition-colors duration-150 ${
                   conversaAtiva === c.id
                     ? "bg-[#F5EDEC] border-l-[3px] border-l-[#955251] text-foreground"
