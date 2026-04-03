@@ -209,16 +209,17 @@ export default function MirandaPage() {
         .replace(/[^a-zA-Z0-9_\-]/g, "");
       const filename = `Relatorio_Comparativo_${safeRef}_${format(new Date(), "ddMMyyyy")}.pdf`;
 
-      // Upload to storage
+      // Create a local blob URL for download (avoids ad-blocker issues with Supabase URLs)
+      const blobUrl = URL.createObjectURL(pdfBlob);
+
+      // Upload to storage in background (non-blocking)
       const filePath = `comparativos/${user?.id}/${filename}`;
-      const { error: uploadError } = await supabase.storage
+      supabase.storage
         .from("relatorios")
-        .upload(filePath, pdfBlob, { contentType: "application/pdf", upsert: true });
-
-      if (uploadError) throw new Error("Erro ao salvar relatório: " + uploadError.message);
-
-      const { data: urlData } = supabase.storage.from("relatorios").getPublicUrl(filePath);
-      const downloadUrl = urlData.publicUrl;
+        .upload(filePath, pdfBlob, { contentType: "application/pdf", upsert: true })
+        .then(({ error: uploadError }) => {
+          if (uploadError) console.warn("Backup upload failed:", uploadError.message);
+        });
 
       // Build summary
       const numBeneficiarios = dados.beneficiarios.length;
@@ -241,7 +242,7 @@ export default function MirandaPage() {
       if (assistantMsg) {
         setDownloads((prev) => ({
           ...prev,
-          [assistantMsg.id]: { filename, size: pdfBlob.size, url: downloadUrl },
+          [assistantMsg.id]: { filename, size: pdfBlob.size, url: blobUrl },
         }));
       }
 
