@@ -124,22 +124,36 @@ export function DocumentoCard({ doc, index, searchQuery }: { doc: DocData; index
           <div className="h-10 w-10 rounded-md bg-brand-light flex items-center justify-center shrink-0">
             <Icon className="h-5 w-5 text-brand" />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <MoreVertical className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {(previewUrl || doc.conteudo_extraido) && (
-                <DropdownMenuItem onClick={handleView}><Eye className="h-4 w-4 mr-2" /> Visualizar</DropdownMenuItem>
-              )}
-              {doc.arquivo_url && (
-                <DropdownMenuItem onClick={handleDownload}><Download className="h-4 w-4 mr-2" /> Baixar</DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={handleDelete} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" /> Remover</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-0.5">
+            {(previewUrl || doc.conteudo_extraido) && (
+              <button
+                onClick={handleView}
+                title="Visualizar"
+                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-brand hover:bg-brand-light transition-colors"
+              >
+                <Eye className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {doc.arquivo_url && (
+              <button
+                onClick={handleDownload}
+                title="Baixar"
+                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-brand hover:bg-brand-light transition-colors"
+              >
+                <Download className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleDelete} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" /> Remover</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         <h4
