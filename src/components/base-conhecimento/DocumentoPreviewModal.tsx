@@ -74,6 +74,10 @@ interface Props {
 }
 
 export function DocumentoPreviewModal({ doc, open, onOpenChange }: Props) {
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+
   const previewUrl = doc.arquivo_url || doc.fonte_url;
   const pdfUrl = isPdf(doc.arquivo_url) ? doc.arquivo_url : null;
   const imgUrl = isImage(doc.arquivo_url) ? doc.arquivo_url : null;
