@@ -44,6 +44,7 @@ const App = () => (
         <AuthProvider>
           <ImpersonationProvider>
             <Routes>
+              <Route path="/" element={<Landing />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/cadastro" element={<Cadastro />} />
               <Route path="/login" element={<Login />} />
