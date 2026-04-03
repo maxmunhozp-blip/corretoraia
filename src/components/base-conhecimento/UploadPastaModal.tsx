@@ -410,6 +410,8 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
     }
 
     setUploading(false);
+    setStep("done");
+    setShowCelebration(true);
     toast.success(
       `Upload concluído: ${completed} arquivo${completed !== 1 ? "s" : ""} enviado${completed !== 1 ? "s" : ""}${errors > 0 ? `, ${errors} erro${errors !== 1 ? "s" : ""}` : ""}`
     );
