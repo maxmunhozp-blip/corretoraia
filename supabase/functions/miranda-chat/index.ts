@@ -640,7 +640,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-5-mini",
         messages: finalMessages,
         stream: true,
       }),
