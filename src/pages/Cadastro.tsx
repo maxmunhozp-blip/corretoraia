@@ -84,10 +84,22 @@ export default function Cadastro() {
     setStep("dados");
   };
 
+  const formatWhatsApp = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return `(${digits}`;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.email || !form.senha || !form.nome || !form.nomeCorretora) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+    const whatsDigits = form.telefone.replace(/\D/g, "");
+    if (whatsDigits.length < 10) {
+      toast.error("Informe um número de WhatsApp válido");
       return;
     }
     if (form.senha.length < 6) {
