@@ -57,7 +57,38 @@ function triggerDownload(url: string, filename: string) {
     .catch(() => window.open(url, "_blank"));
 }
 
-export function DocumentoCard({ doc, index }: { doc: DocData; index: number }) {
+function getSnippet(text: string | null | undefined, query: string, maxLen = 120): string | null {
+  if (!text || !query || query.length < 2) return null;
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(query.toLowerCase());
+  if (idx === -1) return null;
+  const start = Math.max(0, idx - 40);
+  const end = Math.min(text.length, idx + query.length + maxLen - 40);
+  const prefix = start > 0 ? "…" : "";
+  const suffix = end < text.length ? "…" : "";
+  return prefix + text.slice(start, end) + suffix;
+}
+
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query || query.length < 2) return <>{text}</>;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-brand/20 text-brand font-medium rounded-sm px-0.5">
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
+export function DocumentoCard({ doc, index, searchQuery }: { doc: DocData; index: number; searchQuery?: string }) {
   const Icon = iconMap[doc.tipo || "outro"] || FileText;
   const deleteMut = useDeleteConhecimento();
   const [previewOpen, setPreviewOpen] = useState(false);
