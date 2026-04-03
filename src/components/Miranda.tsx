@@ -258,7 +258,7 @@ export function MirandaPanel({
     );
   };
 
-  const handleKey = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send(input);
