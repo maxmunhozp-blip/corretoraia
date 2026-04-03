@@ -172,6 +172,7 @@ export function MirandaPanel({
           { role: "assistant", content: `⚠️ ${errorMsg}` },
         ]);
       },
+      { usuario_id: user?.id, contexto_pagina: location.pathname },
     );
   };
 
