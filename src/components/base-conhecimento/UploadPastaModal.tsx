@@ -97,7 +97,11 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
   const processar = useProcessarConhecimento();
 
   const scanAndCategorize = async (fileList: FileList) => {
+    setScanning(true);
+    setStep("review");
     const scanned: ScannedFile[] = [];
+    const foldersSet = new Set<string>();
+
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
       const ext = file.name.split(".").pop()?.toLowerCase() || "";
@@ -106,6 +110,10 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
       if (file.size > 50 * 1024 * 1024) continue;
 
       const relativePath = (file as any).webkitRelativePath || file.name;
+      const folder = relativePath.substring(0, relativePath.lastIndexOf("/")) || "/";
+      foldersSet.add(folder);
+      setScanStats({ folders: foldersSet.size, files: scanned.length + 1 });
+
       scanned.push({
         file,
         relativePath,
@@ -114,8 +122,11 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
       });
     }
 
+    setScanning(false);
+
     if (scanned.length === 0) {
       toast.error("Nenhum arquivo compatível encontrado na pasta");
+      setStep("select");
       return;
     }
 
