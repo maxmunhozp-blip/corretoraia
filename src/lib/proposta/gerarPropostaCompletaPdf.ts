@@ -67,6 +67,8 @@ function drawSectionTitle(doc: jsPDF, title: string, y: number): number {
 }
 
 function drawCoverPage(doc: jsPDF, data: PropostaCompleta) {
+  const p = data.personalizacao;
+
   // Background
   doc.setFillColor(...SURFACE);
   doc.rect(0, 0, PAGE_W, PAGE_H * 0.6, "F");
@@ -89,22 +91,31 @@ function drawCoverPage(doc: jsPDF, data: PropostaCompleta) {
   doc.setFontSize(28);
   doc.text("Proposta de Plano de Saúde", PAGE_W / 2, 80, { align: "center" });
 
+  // Personalized subtitle or default
   doc.setTextColor(...TEXT_MUTED);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
-  doc.text(`Preparada exclusivamente para ${data.cliente_nome}`, PAGE_W / 2, 92, { align: "center" });
+  const subtitulo = p?.frase_abertura_capa || `Preparada exclusivamente para ${data.cliente_nome}`;
+  const subtLines = doc.splitTextToSize(subtitulo, CW - 20);
+  doc.text(subtLines, PAGE_W / 2, 92, { align: "center" });
 
   const cidade = data.corretora.cidade || "Brasília";
   const dataStr = new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
   doc.setFontSize(10);
-  doc.text(`${cidade}, ${dataStr}`, PAGE_W / 2, 104, { align: "center" });
+  doc.text(`${cidade}, ${dataStr}`, PAGE_W / 2, 92 + subtLines.length * 5 + 8, { align: "center" });
 
-  // Bottom bullets
-  const bullets = [
-    "Análise personalizada da sua situação",
-    "Comparativo entre as melhores opções do mercado",
-    "Explicação simples de todos os termos",
-  ];
+  // Bottom bullets — personalized based on destaque_principal
+  const bullets = p?.argumento_chave
+    ? [
+        p.argumento_chave,
+        "Comparativo entre as melhores opções do mercado",
+        "Explicação simples de todos os termos",
+      ]
+    : [
+        "Análise personalizada da sua situação",
+        "Comparativo entre as melhores opções do mercado",
+        "Explicação simples de todos os termos",
+      ];
   doc.setTextColor(...WHITE);
   doc.setFontSize(10);
   let by = PAGE_H * 0.65;
