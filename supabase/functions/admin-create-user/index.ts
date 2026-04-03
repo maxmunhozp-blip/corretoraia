@@ -106,6 +106,13 @@ Deno.serve(async (req) => {
     });
 
     if (authError) {
+      // Check if it's a duplicate email error
+      if (authError.message?.includes("already been registered") || authError.status === 422) {
+        return new Response(
+          JSON.stringify({ error: "Este e-mail já está cadastrado no sistema." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(JSON.stringify({ error: authError.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
