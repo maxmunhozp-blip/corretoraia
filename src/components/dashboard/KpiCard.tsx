@@ -25,6 +25,7 @@ export function KpiCard({
   subtitle,
   icon: Icon,
   index,
+  className,
   children,
 }: KpiCardProps) {
   const idx = index ?? 0;
