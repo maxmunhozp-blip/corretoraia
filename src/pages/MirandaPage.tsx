@@ -202,7 +202,11 @@ export default function MirandaPage() {
 
       // Generate PDF client-side
       const pdfBlob = gerarRelatorioComparativo(dados);
-      const filename = `Relatorio_Comparativo_${dados.data_referencia.replace(/\//g, "_")}_${format(new Date(), "ddMMyyyy")}.pdf`;
+      const safeRef = dados.data_referencia
+        .replace(/\//g, "_")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9_\-]/g, "");
+      const filename = `Relatorio_Comparativo_${safeRef}_${format(new Date(), "ddMMyyyy")}.pdf`;
 
       // Upload to storage
       const filePath = `comparativos/${user?.id}/${filename}`;
