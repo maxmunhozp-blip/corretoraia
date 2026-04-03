@@ -5,6 +5,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+
+function respond(body: object, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -12,12 +18,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return respond({ error: "Não autorizado" }, 401);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -27,12 +28,7 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!caller) return respond({ error: "Não autorizado" }, 401);
 
     // Check caller role
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -43,36 +39,23 @@ Deno.serve(async (req) => {
       .single();
 
     if (!callerProfile || !["master", "admin_corretora"].includes(callerProfile.role)) {
-      return new Response(JSON.stringify({ error: "Sem permissão" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ error: "Sem permissão" }, 403);
     }
 
     const body = await req.json();
     const { email, password, nome, cargo, role, corretora_id } = body;
 
     if (!email || !password || !nome) {
-      return new Response(JSON.stringify({ error: "Email, senha e nome são obrigatórios" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ error: "Email, senha e nome são obrigatórios" }, 400);
     }
 
-    // Validate permissions
+    // Validate permissions for admin_corretora
     if (callerProfile.role === "admin_corretora") {
       if (!["admin_corretora", "vendedor", "gerente"].includes(role)) {
-        return new Response(JSON.stringify({ error: "Role inválido" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return respond({ error: "Role inválido" }, 400);
       }
-      // admin_corretora can only create users for their own corretora
       if (corretora_id !== callerProfile.corretora_id) {
-        return new Response(JSON.stringify({ error: "Sem permissão para esta corretora" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return respond({ error: "Sem permissão para esta corretora" }, 403);
       }
 
       // Check user limit
@@ -90,15 +73,28 @@ Deno.serve(async (req) => {
           .eq("ativo", true);
 
         if ((count ?? 0) >= corretora.max_usuarios) {
-          return new Response(JSON.stringify({ error: "Limite de usuários atingido. Faça upgrade do plano." }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return respond({ error: "Limite de usuários atingido. Faça upgrade do plano." }, 400);
         }
       }
     }
 
-    // Create auth user
+    const initials = nome.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+
+    // Helper to create profile for a given user id
+    async function createProfileForUser(userId: string) {
+      const { error: profileError } = await adminClient.from("profiles").insert({
+        id: userId,
+        nome,
+        cargo: cargo || null,
+        role: role || "vendedor",
+        corretora_id: corretora_id || null,
+        avatar_iniciais: initials,
+        ativo: true,
+      });
+      return profileError;
+    }
+
+    // Try to create auth user
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -106,20 +102,57 @@ Deno.serve(async (req) => {
     });
 
     if (authError) {
-      // Check if it's a duplicate email error
-      if (authError.message?.includes("already been registered") || authError.status === 422) {
-        return new Response(
-          JSON.stringify({ error: "Este e-mail já está cadastrado no sistema." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      // If email already exists in auth, handle orphan user scenario
+      if (authError.message?.includes("already been registered") || (authError as any).status === 422) {
+        // Find the existing auth user
+        const { data: listData } = await adminClient.auth.admin.listUsers({ perPage: 1 });
+        let existingUserId: string | null = null;
+
+        if (listData?.users) {
+          const found = listData.users.find((u: any) => u.email === email);
+          if (found) existingUserId = found.id;
+        }
+
+        // If we can't find the user via list, try a broader search
+        if (!existingUserId) {
+          const { data: allUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+          if (allUsers?.users) {
+            const found = allUsers.users.find((u: any) => u.email === email);
+            if (found) existingUserId = found.id;
+          }
+        }
+
+        if (!existingUserId) {
+          return respond({ error: "Este e-mail já está cadastrado no sistema." }, 400);
+        }
+
+        // Check if this user already has a profile
+        const { data: existingProfile } = await adminClient
+          .from("profiles")
+          .select("id")
+          .eq("id", existingUserId)
+          .maybeSingle();
+
+        if (existingProfile) {
+          return respond({ error: "Este e-mail já está cadastrado no sistema." }, 400);
+        }
+
+        // Orphan user: auth exists but no profile — create the profile
+        const profileError = await createProfileForUser(existingUserId);
+        if (profileError) {
+          return respond({ error: "Erro ao criar perfil: " + profileError.message }, 500);
+        }
+
+        return respond({
+          success: true,
+          user: { id: existingUserId, email, nome, role: role || "vendedor" },
+        });
       }
-      return new Response(JSON.stringify({ error: authError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+      return respond({ error: authError.message }, 400);
     }
 
-    // Check if profile already exists (email was already registered)
+    // Auth user created successfully — check for existing profile (shouldn't happen but safety check)
     const { data: existingProfile } = await adminClient
       .from("profiles")
       .select("id")
@@ -127,51 +160,26 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingProfile) {
-      return new Response(
-        JSON.stringify({ error: "Este e-mail já está cadastrado no sistema." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return respond({ error: "Este e-mail já está cadastrado no sistema." }, 400);
     }
 
-    const initials = nome.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-
-    // Create profile
-    const { error: profileError } = await adminClient.from("profiles").insert({
-      id: authData.user.id,
-      nome,
-      cargo: cargo || null,
-      role: role || "vendedor",
-      corretora_id: corretora_id || null,
-      avatar_iniciais: initials,
-      ativo: true,
-    });
+    // Create profile for the new auth user
+    const profileError = await createProfileForUser(authData.user.id);
 
     if (profileError) {
       if (profileError.code === "23505") {
-        return new Response(
-          JSON.stringify({ error: "Usuário já existe no sistema. Verifique a lista de usuários." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return respond({ error: "Usuário já existe no sistema. Verifique a lista de usuários." }, 400);
       }
-      // Rollback: delete auth user only if we just created it
+      // Rollback: delete the auth user we just created
       await adminClient.auth.admin.deleteUser(authData.user.id);
-      return new Response(JSON.stringify({ error: profileError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ error: profileError.message }, 400);
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        user: { id: authData.user.id, email, nome, role },
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return respond({
+      success: true,
+      user: { id: authData.user.id, email, nome, role: role || "vendedor" },
     });
+  } catch (err) {
+    return respond({ error: err.message }, 500);
   }
 });

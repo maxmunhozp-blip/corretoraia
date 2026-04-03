@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -33,7 +35,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MoreVertical, Plus, UserPlus, AlertCircle, Loader2 } from "lucide-react";
+import { MoreVertical, UserPlus, AlertCircle, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 
@@ -56,7 +58,7 @@ export default function UsuariosCorretora() {
 
   const corretora_id = (profile as any)?.corretora_id;
 
-  const { data: usuarios = [] } = useQuery({
+  const { data: usuarios = [], isLoading: isLoadingUsuarios } = useQuery({
     queryKey: ["corretora-usuarios", corretora_id],
     queryFn: async () => {
       if (!corretora_id) return [];
@@ -92,35 +94,50 @@ export default function UsuariosCorretora() {
     mutationFn: async () => {
       const senha =
         form.senha || Math.random().toString(36).slice(-8) + "A1!";
-      const { data, error } = await supabase.functions.invoke(
-        "admin-create-user",
-        {
-          body: {
-            email: form.email,
-            password: senha,
-            nome: form.nome,
-            cargo: form.cargo || null,
-            role: form.role,
-            corretora_id,
-          },
-        }
-      );
+
+      let data: any = null;
+      let error: any = null;
+
+      try {
+        const response = await supabase.functions.invoke(
+          "admin-create-user",
+          {
+            body: {
+              email: form.email,
+              password: senha,
+              nome: form.nome,
+              cargo: form.cargo || null,
+              role: form.role,
+              corretora_id,
+            },
+          }
+        );
+        data = response.data;
+        error = response.error;
+      } catch (invokeErr: any) {
+        throw new Error("Erro de conexão. Tente novamente.");
+      }
+
       if (error) {
-        // Try to extract the JSON body from the edge function error
+        // Extract the actual error message from the edge function response
         let msg = "Erro ao convidar usuário";
         try {
-          const body = await error.context?.json?.();
-          if (body?.error) msg = body.error;
+          if (typeof error.context?.json === "function") {
+            const body = await error.context.json();
+            if (body?.error) msg = body.error;
+          } else if (error.message) {
+            msg = error.message;
+          }
         } catch {
-          // If context is not available, try parsing the message
           if (error.message) msg = error.message;
         }
         throw new Error(msg);
       }
+
       if (data?.error) throw new Error(data.error);
       return senha;
     },
-    onSuccess: (senha) => {
+    onSuccess: () => {
       toast.success(`Usuário ${form.nome} convidado com sucesso!`);
       setOpen(false);
       setEmailError("");
@@ -130,8 +147,8 @@ export default function UsuariosCorretora() {
       });
     },
     onError: (err: any) => {
-      const msg = err.message || "Erro ao convidar usuário";
-      if (msg.includes("já está cadastrado") || msg.includes("já existe")) {
+      const msg = err?.message || "Erro ao convidar usuário";
+      if (msg.includes("já está cadastrado") || msg.includes("já existe") || msg.includes("já está em uso")) {
         setEmailError("Este e-mail já está em uso. Tente outro endereço.");
       } else {
         toast.error(msg);
@@ -170,7 +187,7 @@ export default function UsuariosCorretora() {
           {corretora?.plano || "—"})
         </Badge>
 
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEmailError(""); }}>
           <Tooltip>
             <TooltipTrigger asChild>
               <span>
@@ -193,6 +210,9 @@ export default function UsuariosCorretora() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Convidar Usuário</DialogTitle>
+              <DialogDescription>
+                Preencha os dados para convidar um novo usuário para a corretora.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div>
@@ -282,61 +302,91 @@ export default function UsuariosCorretora() {
                 </tr>
               </thead>
               <tbody>
-                {usuarios.map((u: any) => (
-                  <tr
-                    key={u.id}
-                    className="border-b last:border-0 hover:bg-muted/30"
-                  >
-                    <td className="p-4 font-medium">{u.nome}</td>
-                    <td className="p-4 text-muted-foreground">
-                      {u.cargo || "—"}
-                    </td>
-                    <td className="p-4">
-                      <Badge variant="outline" className="bg-transparent">
-                        {roleLabel(u.role)}
-                      </Badge>
-                    </td>
-                    <td className="p-4">
-                      <Badge
-                        variant="outline"
-                        className={`bg-transparent ${
-                          u.ativo
-                            ? "border-green-500 text-green-600"
-                            : "border-red-500 text-red-600"
-                        }`}
+                {isLoadingUsuarios ? (
+                  <>
+                    {[1, 2, 3].map((i) => (
+                      <tr key={i} className="border-b">
+                        <td className="p-4"><Skeleton className="h-4 w-32" /></td>
+                        <td className="p-4"><Skeleton className="h-4 w-24" /></td>
+                        <td className="p-4"><Skeleton className="h-4 w-20" /></td>
+                        <td className="p-4"><Skeleton className="h-4 w-16" /></td>
+                        <td className="p-4"><Skeleton className="h-4 w-8 ml-auto" /></td>
+                      </tr>
+                    ))}
+                  </>
+                ) : usuarios.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center">
+                      <Users className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground font-medium">Nenhum usuário encontrado</p>
+                      <p className="text-xs text-muted-foreground/60 mt-1">Convide o primeiro usuário para começar</p>
+                      <Button
+                        size="sm"
+                        className="mt-4 bg-brand hover:bg-brand-hover text-white"
+                        onClick={() => setOpen(true)}
+                        disabled={limiteAtingido}
                       >
-                        {u.ativo ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </td>
-                    <td className="p-4 text-right">
-                      {u.id !== user?.id && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() =>
-                                toggleAtivoMutation.mutate({
-                                  id: u.id,
-                                  ativo: !u.ativo,
-                                })
-                              }
-                            >
-                              {u.ativo ? "Desativar" : "Ativar"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                        <UserPlus className="h-3 w-3 mr-1" /> Convidar primeiro usuário
+                      </Button>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  usuarios.map((u: any) => (
+                    <tr
+                      key={u.id}
+                      className="border-b last:border-0 hover:bg-muted/30"
+                    >
+                      <td className="p-4 font-medium">{u.nome}</td>
+                      <td className="p-4 text-muted-foreground">
+                        {u.cargo || "—"}
+                      </td>
+                      <td className="p-4">
+                        <Badge variant="outline" className="bg-transparent">
+                          {roleLabel(u.role)}
+                        </Badge>
+                      </td>
+                      <td className="p-4">
+                        <Badge
+                          variant="outline"
+                          className={`bg-transparent ${
+                            u.ativo
+                              ? "border-green-500 text-green-600"
+                              : "border-red-500 text-red-600"
+                          }`}
+                        >
+                          {u.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </td>
+                      <td className="p-4 text-right">
+                        {u.id !== user?.id && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  toggleAtivoMutation.mutate({
+                                    id: u.id,
+                                    ativo: !u.ativo,
+                                  })
+                                }
+                              >
+                                {u.ativo ? "Desativar" : "Ativar"}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
