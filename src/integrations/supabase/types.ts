@@ -93,6 +93,69 @@ export type Database = {
           },
         ]
       }
+      base_conhecimento: {
+        Row: {
+          adicionado_por: string | null
+          arquivo_url: string | null
+          categoria: string
+          conteudo_extraido: string | null
+          created_at: string
+          descricao: string | null
+          erro_mensagem: string | null
+          fonte_url: string | null
+          id: string
+          operadora_id: string | null
+          status: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          adicionado_por?: string | null
+          arquivo_url?: string | null
+          categoria: string
+          conteudo_extraido?: string | null
+          created_at?: string
+          descricao?: string | null
+          erro_mensagem?: string | null
+          fonte_url?: string | null
+          id?: string
+          operadora_id?: string | null
+          status?: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          adicionado_por?: string | null
+          arquivo_url?: string | null
+          categoria?: string
+          conteudo_extraido?: string | null
+          created_at?: string
+          descricao?: string | null
+          erro_mensagem?: string | null
+          fonte_url?: string | null
+          id?: string
+          operadora_id?: string | null
+          status?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "base_conhecimento_adicionado_por_fkey"
+            columns: ["adicionado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "base_conhecimento_operadora_id_fkey"
+            columns: ["operadora_id"]
+            isOneToOne: false
+            referencedRelation: "operadoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           created_at: string

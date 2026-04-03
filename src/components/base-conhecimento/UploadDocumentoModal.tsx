@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Upload } from "lucide-react";
 import { useOperadoras } from "@/hooks/usePropostas";
-import { useCreateDocumento, useUploadDocumento } from "@/hooks/useDocumentos";
+import { useCreateConhecimento, useUploadConhecimento, useProcessarConhecimento } from "@/hooks/useBaseConhecimento";
 import { toast } from "sonner";
 
 interface Props {
@@ -37,8 +37,9 @@ export function UploadDocumentoModal({ open, onOpenChange }: Props) {
   const [dragOver, setDragOver] = useState(false);
 
   const { data: operadoras } = useOperadoras();
-  const createDoc = useCreateDocumento();
-  const uploadFile = useUploadDocumento();
+  const createDoc = useCreateConhecimento();
+  const uploadFile = useUploadConhecimento();
+  const processar = useProcessarConhecimento();
 
   const getFileType = (name: string) => {
     const ext = name.split(".").pop()?.toLowerCase();
@@ -76,26 +77,30 @@ export function UploadDocumentoModal({ open, onOpenChange }: Props) {
       const path = `${Date.now()}_${file.name}`;
       setProgress(50);
       const publicUrl = await uploadFile.mutateAsync({ file, path });
-      setProgress(80);
+      setProgress(70);
 
-      await createDoc.mutateAsync({
+      const tipo = getFileType(file.name);
+      const doc = await createDoc.mutateAsync({
         titulo,
+        tipo,
         categoria: categoria || "outro",
         operadora_id: operadoraId || undefined,
         descricao: descricao || undefined,
-        tipo_arquivo: getFileType(file.name),
-        arquivo_path: publicUrl,
+        arquivo_url: publicUrl,
         status: "processando",
+      });
+
+      setProgress(90);
+
+      // Trigger processing in background
+      processar.mutate({
+        id: doc.id,
+        tipo,
+        arquivo_url: publicUrl,
       });
 
       setProgress(100);
       toast.success("Documento enviado — a Miranda está processando o conteúdo");
-
-      // Simulate processing completion after 3s
-      setTimeout(async () => {
-        // We won't update here since we'd need the doc id
-      }, 3000);
-
       onOpenChange(false);
       reset();
     } catch {

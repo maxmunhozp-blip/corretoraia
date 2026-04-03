@@ -5,19 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDocumentos } from "@/hooks/useDocumentos";
+import { useBaseConhecimento } from "@/hooks/useBaseConhecimento";
 import { DocumentoCard } from "@/components/base-conhecimento/DocumentoCard";
 import { UploadDocumentoModal } from "@/components/base-conhecimento/UploadDocumentoModal";
 import { BuscarInternetModal } from "@/components/base-conhecimento/BuscarInternetModal";
-
-const tabs = [
-  { value: "todos", label: "Todos" },
-  { value: "regras_comerciais", label: "Operadoras" },
-  { value: "regras_comerciais", label: "Regras Comerciais" },
-  { value: "tabela_preco", label: "Tabelas de Preço" },
-  { value: "rede_credenciada", label: "Rede Credenciada" },
-  { value: "pesquisas_web", label: "Pesquisas Web" },
-];
 
 export default function BaseConhecimento() {
   const [search, setSearch] = useState("");
@@ -25,7 +16,7 @@ export default function BaseConhecimento() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const { data: documentos, isLoading } = useDocumentos({ search, categoria: activeTab });
+  const { data: documentos, isLoading } = useBaseConhecimento({ search, categoria: activeTab });
 
   return (
     <PageWrapper title="">
