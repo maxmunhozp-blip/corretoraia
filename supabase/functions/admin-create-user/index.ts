@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
     // Validate permissions
     if (callerProfile.role === "admin_corretora") {
-      if (!["admin_corretora", "corretor"].includes(role)) {
+      if (!["admin_corretora", "vendedor", "gerente"].includes(role)) {
         return new Response(JSON.stringify({ error: "Role inválido" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
