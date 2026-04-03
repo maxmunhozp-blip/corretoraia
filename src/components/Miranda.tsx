@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MirandaMarkdown } from "./MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "./MirandaChart";
 import { DownloadCard } from "./miranda/DownloadCard";
+import { PdfGeneratorCard } from "./miranda/PdfGeneratorCard";
 import { ScrollArea } from "./ui/scroll-area";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
