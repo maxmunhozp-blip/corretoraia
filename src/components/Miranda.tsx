@@ -6,6 +6,7 @@ import { useMirandaConversas, type Mensagem } from "@/hooks/useMirandaConversas"
 import { supabase } from "@/integrations/supabase/client";
 import { MirandaMarkdown } from "./MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "./MirandaChart";
+import { DownloadCard } from "./miranda/DownloadCard";
 import { ScrollArea } from "./ui/scroll-area";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -347,6 +348,8 @@ export function MirandaPanel({
                       {parseMessageWithCharts(msg.content).map((segment, si) =>
                         segment.type === "chart" ? (
                           <MirandaChart key={si} data={segment.data} />
+                        ) : segment.type === "download" ? (
+                          <DownloadCard key={si} filename={segment.data.filename} size={segment.data.size} url={segment.data.url} />
                         ) : (
                           <MirandaMarkdown key={si} content={segment.content} />
                         )

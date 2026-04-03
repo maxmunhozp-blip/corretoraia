@@ -28,11 +28,6 @@ const quickActions = [
   { label: "Resumo de vendas", icon: Database, message: "Apresente o resumo de vendas da semana com gráficos comparativos." },
 ];
 
-interface DownloadInfo {
-  filename: string;
-  size: number;
-  url: string;
-}
 
 interface ChatMessage {
   id: string;
@@ -40,7 +35,7 @@ interface ChatMessage {
   content: string;
   created_at: string;
   pdfAttachment?: { filename: string; size: string };
-  download?: DownloadInfo;
+  
 }
 
 function ActionIndicator({ action }: { action: string }) {
@@ -136,7 +131,7 @@ export default function MirandaPage() {
   const [hoveredConversa, setHoveredConversa] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateStyle>("detalhado");
-  const [downloads, setDownloads] = useState<Record<string, DownloadInfo>>({});
+  
   const [pdfAttachments, setPdfAttachments] = useState<Record<string, { filename: string; size: string }>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -229,22 +224,18 @@ export default function MirandaPage() {
         dados.consolidacao[0]
       );
 
+      const downloadBlock = `\n\n\`\`\`download\n${JSON.stringify({ filename, size: pdfBlob.size, url: blobUrl })}\n\`\`\``;
+
       const summary = `✅ **Relatório comparativo gerado com sucesso!**\n\nIdentifiquei **${numBeneficiarios} beneficiários** e **${numAlternativas} alternativas** de planos.\n\n${
         melhorEconomia && melhorEconomia.percentual_reducao > 0
           ? `A maior economia projetada é de **${melhorEconomia.reducao_mensal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/mês** (**${melhorEconomia.percentual_reducao.toFixed(1)}%**) migrando para **${melhorEconomia.plano}** (${melhorEconomia.operadora}).`
           : ""
-      }\n\nClique abaixo para baixar o relatório:`;
+      }\n\nClique abaixo para baixar o relatório:${downloadBlock}`;
 
       setCurrentAction(null);
 
-      // Save assistant message
-      const assistantMsg = await salvarMensagem(activeConversaId, "assistant", summary);
-      if (assistantMsg) {
-        setDownloads((prev) => ({
-          ...prev,
-          [assistantMsg.id]: { filename, size: pdfBlob.size, url: blobUrl },
-        }));
-      }
+      // Save assistant message (download card is embedded in content)
+      await salvarMensagem(activeConversaId, "assistant", summary);
 
       // Log activity
       await supabase.from("atividades").insert({
@@ -470,16 +461,11 @@ export default function MirandaPage() {
                     {parseMessageWithCharts(msg.content).map((seg, si) =>
                       seg.type === "chart" ? (
                         <MirandaChart key={si} data={seg.data} />
+                      ) : seg.type === "download" ? (
+                        <DownloadCard key={si} filename={seg.data.filename} size={seg.data.size} url={seg.data.url} />
                       ) : (
                         <MirandaMarkdown key={si} content={seg.content} />
                       )
-                    )}
-                    {downloads[msg.id] && (
-                      <DownloadCard
-                        filename={downloads[msg.id].filename}
-                        size={downloads[msg.id].size}
-                        url={downloads[msg.id].url}
-                      />
                     )}
                     {streaming && i === mensagens.length - 1 && <BlinkingCursor />}
                   </div>
