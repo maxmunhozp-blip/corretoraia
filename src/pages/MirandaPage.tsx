@@ -28,11 +28,6 @@ const quickActions = [
   { label: "Resumo de vendas", icon: Database, message: "Apresente o resumo de vendas da semana com gráficos comparativos." },
 ];
 
-interface DownloadInfo {
-  filename: string;
-  size: number;
-  url: string;
-}
 
 interface ChatMessage {
   id: string;
