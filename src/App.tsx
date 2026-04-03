@@ -71,6 +71,7 @@ const App = () => (
                 <Route path="/desenvolvimento" element={<Desenvolvimento />} />
                 <Route path="/configuracoes" element={<Configuracoes />} />
                 <Route path="/configuracoes/usuarios" element={<UsuariosCorretora />} />
+                <Route path="/configuracoes/corretora" element={<MinhaCorretora />} />
                 <Route path="/gestao" element={<Gestao />} />
                 <Route path="/miranda" element={<MirandaPage />} />
               </Route>
