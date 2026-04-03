@@ -468,17 +468,6 @@ async function executeTool(name: string, args: any, supabase: any): Promise<stri
         return JSON.stringify({ sucesso: true, mensagem: `Alerta "${titulo}" criado com sucesso` });
       }
 
-      case "gerar_grafico": {
-        // The chart tool doesn't query DB - it just formats the data the AI already has
-        // The AI will embed this as a ```chart block in its response
-        const { tipo, titulo, dados, label_valor, label_valor2 } = args;
-        const chartData = { tipo, titulo, dados, label_valor, label_valor2 };
-        return JSON.stringify({
-          chart_embed: true,
-          chart_block: "```chart\n" + JSON.stringify(chartData) + "\n```",
-          instrucao: "Inclua o bloco chart EXATAMENTE como está acima na sua resposta para que o gráfico seja renderizado inline.",
-        });
-      }
 
       default:
         return JSON.stringify({ erro: `Tool "${name}" não implementada` });
