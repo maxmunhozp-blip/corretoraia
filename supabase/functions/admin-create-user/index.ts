@@ -112,6 +112,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Check if profile already exists (email was already registered)
+    const { data: existingProfile } = await adminClient
+      .from("profiles")
+      .select("id")
+      .eq("id", authData.user.id)
+      .maybeSingle();
+
+    if (existingProfile) {
+      return new Response(
+        JSON.stringify({ error: "Este e-mail já está cadastrado no sistema." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const initials = nome.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
     // Create profile
@@ -126,7 +140,13 @@ Deno.serve(async (req) => {
     });
 
     if (profileError) {
-      // Rollback: delete auth user
+      if (profileError.code === "23505") {
+        return new Response(
+          JSON.stringify({ error: "Usuário já existe no sistema. Verifique a lista de usuários." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Rollback: delete auth user only if we just created it
       await adminClient.auth.admin.deleteUser(authData.user.id);
       return new Response(JSON.stringify({ error: profileError.message }), {
         status: 400,
