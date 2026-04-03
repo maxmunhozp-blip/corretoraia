@@ -54,6 +54,7 @@ const App = () => (
               <Route path="/gestao" element={<Gestao />} />
               <Route path="/miranda" element={<MirandaPage />} />
             </Route>
+            <Route path="/ranking/tv" element={<ProtectedRoute><RankingTV /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
