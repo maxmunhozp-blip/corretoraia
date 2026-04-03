@@ -55,12 +55,22 @@ export function DocumentoCard({ doc, index }: { doc: DocData; index: number }) {
     if (url) window.open(url, "_blank");
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (doc.arquivo_url) {
-      const a = document.createElement("a");
-      a.href = doc.arquivo_url;
-      a.download = doc.titulo;
-      a.click();
+      try {
+        const response = await fetch(doc.arquivo_url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = doc.titulo;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } catch {
+        window.open(doc.arquivo_url, "_blank");
+      }
     }
   };
 
