@@ -500,6 +500,9 @@ function drawProximosPassosPage(doc: jsPDF, data: PropostaCompleta) {
 }
 
 export function gerarPropostaCompletaPdf(data: PropostaCompleta): Blob {
+  // Build brand palette from corretora colors
+  P = buildBrandPalette(data.corretora.cor_primaria, data.corretora.cor_secundaria);
+
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   // Page 1: Capa
