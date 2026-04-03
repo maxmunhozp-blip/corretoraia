@@ -45,7 +45,7 @@ export default function UsuariosCorretora() {
     nome: "",
     email: "",
     cargo: "",
-    role: "corretor",
+    role: "vendedor",
     senha: "",
   });
 
@@ -111,7 +111,7 @@ export default function UsuariosCorretora() {
     onSuccess: (senha) => {
       toast.success(`Usuário convidado. Senha: ${senha}`);
       setOpen(false);
-      setForm({ nome: "", email: "", cargo: "", role: "corretor", senha: "" });
+      setForm({ nome: "", email: "", cargo: "", role: "vendedor", senha: "" });
       queryClient.invalidateQueries({
         queryKey: ["corretora-usuarios"],
       });
@@ -136,7 +136,7 @@ export default function UsuariosCorretora() {
   });
 
   const roleLabel = (r: string) =>
-    r === "admin_corretora" ? "Administrador" : "Corretor";
+    r === "admin_corretora" ? "Administrador" : r === "vendedor" ? "Vendedor" : r === "gerente" ? "Gerente" : r;
 
   return (
     <PageWrapper
@@ -213,7 +213,7 @@ export default function UsuariosCorretora() {
                     <SelectItem value="admin_corretora">
                       Administrador
                     </SelectItem>
-                    <SelectItem value="corretor">Corretor</SelectItem>
+                    <SelectItem value="vendedor">Vendedor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
