@@ -891,25 +891,64 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Fetch user profile and quick context
+    // Fetch user profile, context counts, and memory in parallel
     let userName = "Usuário";
     let userCargo = "";
-    if (usuario_id) {
-      const { data: profile } = await supabase.from("profiles").select("nome, cargo, role").eq("id", usuario_id).single();
-      if (profile) {
-        userName = profile.nome;
-        userCargo = profile.cargo || "";
-      }
+    let corretoraId: string | null = null;
+    let memoriaContexto = "";
+
+    const profilePromise = usuario_id
+      ? supabase.from("profiles").select("nome, cargo, role, corretora_id").eq("id", usuario_id).single()
+      : Promise.resolve({ data: null });
+    const propostasPromise = supabase.from("propostas").select("*", { count: "exact", head: true }).not("status", "in", '("cancelada","aprovada")');
+    const alertasPromise = supabase.from("alertas").select("*", { count: "exact", head: true }).eq("resolvido", false);
+
+    const [profileResult, { count: propostasAtivas }, { count: alertasNaoResolvidos }] = await Promise.all([
+      profilePromise,
+      propostasPromise,
+      alertasPromise,
+    ]);
+
+    if (profileResult.data) {
+      userName = profileResult.data.nome;
+      userCargo = profileResult.data.cargo || "";
+      corretoraId = profileResult.data.corretora_id;
     }
 
-    // Quick context counts
-    const [
-      { count: propostasAtivas },
-      { count: alertasNaoResolvidos },
-    ] = await Promise.all([
-      supabase.from("propostas").select("*", { count: "exact", head: true }).not("status", "in", '("cancelada","aprovada")'),
-      supabase.from("alertas").select("*", { count: "exact", head: true }).eq("resolvido", false),
-    ]);
+    // Load memory (skills + memorias)
+    try {
+      const [{ data: skills }, { data: memorias }] = await Promise.all([
+        supabase
+          .from("miranda_skills")
+          .select("nome, conteudo_md")
+          .eq("ativo", true)
+          .or(corretoraId ? `corretora_id.eq.${corretoraId},corretora_id.is.null` : "corretora_id.is.null"),
+        supabase
+          .from("miranda_memoria")
+          .select("tipo, titulo, conteudo")
+          .eq("ativo", true)
+          .or(corretoraId ? `corretora_id.eq.${corretoraId},corretora_id.is.null` : "corretora_id.is.null")
+          .order("criado_em", { ascending: false })
+          .limit(30),
+      ]);
+
+      if (skills?.length || memorias?.length) {
+        memoriaContexto = "\n\n--- MEMÓRIA DA MIRANDA ---\n";
+        if (skills?.length) {
+          for (const s of skills) {
+            memoriaContexto += `\n## Skill: ${s.nome}\n${s.conteudo_md}\n`;
+          }
+        }
+        if (memorias?.length) {
+          memoriaContexto += "\n## Memórias aprendidas\n";
+          for (const m of memorias) {
+            memoriaContexto += `- [${m.tipo}] **${m.titulo}**: ${m.conteudo}\n`;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error loading memory:", e);
+    }
 
     const now = new Date();
     const systemPrompt = `Você é a Miranda, assistente de inteligência artificial da Cora — plataforma para corretoras de planos de saúde.
