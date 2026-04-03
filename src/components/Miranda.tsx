@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
-import { Sparkles, X, Send } from "lucide-react";
+import { Sparkles, X, Send, Database, Search, RefreshCw, FileText, BarChart3, AlertTriangle } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "assistant" | "user";
@@ -11,46 +12,70 @@ interface Message {
 const INITIAL_MESSAGE: Message = {
   role: "assistant",
   content:
-    "Olá! Sou a Miranda, sua assistente de IA. Posso buscar clientes, verificar status de propostas, responder sobre regras das operadoras e consultar a base de conhecimento. Como posso ajudar?",
+    "Olá! Sou a **Miranda**, sua assistente de IA. Posso buscar clientes, verificar propostas, analisar métricas, responder sobre regras das operadoras e muito mais. Como posso ajudar?",
 };
-
-const quickSuggestions = [
-  "Ver propostas pendentes",
-  "Clientes inadimplentes",
-  "Regras da SulAmérica PME",
-  "Resumo do dia",
-];
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/miranda-chat`;
 
-/* ── Typing dots ── */
-function TypingIndicator() {
+const pageSuggestions: Record<string, string[]> = {
+  "/dashboard": ["Resumo do dia", "Quais alertas críticos?", "Como estão as vendas?"],
+  "/propostas": ["Propostas paradas há mais de 7 dias", "Resumo por operadora", "Quem tem mais pendências?"],
+  "/clientes": ["Clientes em risco de cancelamento", "Inadimplentes esta semana", "Clientes sem propostas ativas"],
+  "/ranking": ["Quem teve maior queda?", "Meta do mês está ok?", "Ranking da semana"],
+  "/base-conhecimento": ["O que temos sobre carência Amil?", "Regras PME SulAmérica", "Tabelas de preço Bradesco"],
+  "/alertas": ["Alertas críticos não resolvidos", "Alertas por tipo", "Resumo de inadimplência"],
+  "/gestao": ["Resumo executivo do mês", "Performance da equipe", "Indicadores gerais"],
+};
+
+const quickActions = [
+  { label: "Relatório do dia", icon: FileText, message: "Gere um relatório executivo completo do dia de hoje com propostas, alertas, vendas e métricas." },
+  { label: "Ver alertas críticos", icon: AlertTriangle, message: "Liste e analise todos os alertas críticos não resolvidos. Sugira ações para cada um." },
+  { label: "Análise de conversão", icon: BarChart3, message: "Faça uma análise de conversão comparando a semana atual com a anterior. Identifique tendências." },
+];
+
+/* ── Action indicator ── */
+function ActionIndicator({ action }: { action: string }) {
+  const iconMap: Record<string, typeof Database> = {
+    buscar_cliente: Database,
+    buscar_propostas: Database,
+    buscar_alertas: Database,
+    buscar_conhecimento: Search,
+    buscar_metricas: Database,
+    buscar_ranking: Database,
+    buscar_conversas: Search,
+    atualizar_proposta: RefreshCw,
+    criar_alerta: RefreshCw,
+  };
+
+  const labelMap: Record<string, string> = {
+    buscar_cliente: "Buscando dados do cliente...",
+    buscar_propostas: "Buscando propostas...",
+    buscar_alertas: "Verificando alertas...",
+    buscar_conhecimento: "Pesquisando base de conhecimento...",
+    buscar_metricas: "Calculando métricas...",
+    buscar_ranking: "Analisando ranking...",
+    buscar_conversas: "Buscando histórico...",
+    atualizar_proposta: "Atualizando proposta...",
+    criar_alerta: "Criando alerta...",
+  };
+
+  const Icon = iconMap[action] || Database;
+  const label = labelMap[action] || "Processando...";
+
   return (
-    <div className="flex items-end gap-2 animate-msg-in">
-      <div className="h-7 w-7 shrink-0 rounded-full bg-brand flex items-center justify-center text-[11px] font-bold text-brand-foreground">
-        M
-      </div>
-      <div className="rounded-xl border border-border bg-card px-4 py-3 flex items-center gap-1">
-        <span className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
-        <span className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
-        <span className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:300ms]" />
-      </div>
+    <div className="flex items-center gap-2 text-xs text-muted-foreground animate-fade-in px-2 py-1.5 rounded-md bg-muted/50">
+      <Icon className="h-3.5 w-3.5 animate-spin-slow" />
+      <span>{label}</span>
     </div>
   );
 }
 
-/* ── Markdown-lite renderer (bold only) ── */
-function renderContent(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") ? (
-      <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
-    ) : (
-      <span key={i}>{part}</span>
-    )
-  );
+/* ── Blinking cursor ── */
+function BlinkingCursor() {
+  return <span className="inline-block w-[2px] h-[1em] bg-brand animate-blink ml-0.5 align-text-bottom" />;
 }
 
+/* ── Stream chat with tool action detection ── */
 async function streamChat(
   messages: { role: string; content: string }[],
   onDelta: (text: string) => void,
@@ -97,6 +122,7 @@ async function streamChat(
         let line = buffer.slice(0, newlineIdx);
         buffer = buffer.slice(newlineIdx + 1);
         if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
         if (!line.startsWith("data: ")) continue;
         const jsonStr = line.slice(6).trim();
         if (jsonStr === "[DONE]") break;
@@ -104,11 +130,28 @@ async function streamChat(
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content;
           if (content) onDelta(content);
-        } catch { /* partial JSON, skip */ }
+        } catch { /* partial JSON */ }
       }
     }
+
+    // Flush remaining
+    if (buffer.trim()) {
+      for (let raw of buffer.split("\n")) {
+        if (!raw) continue;
+        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+        if (!raw.startsWith("data: ")) continue;
+        const jsonStr = raw.slice(6).trim();
+        if (jsonStr === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) onDelta(content);
+        } catch { /* ignore */ }
+      }
+    }
+
     onDone();
-  } catch (e) {
+  } catch {
     onError("Erro de conexão com a Miranda");
   }
 }
@@ -123,24 +166,40 @@ export function MirandaPanel({
 }) {
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [currentAction, setCurrentAction] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const { user } = useAuth();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typing]);
+  }, [messages, streaming, currentAction]);
+
+  // Get contextual suggestions
+  const currentPath = location.pathname;
+  const suggestions = pageSuggestions[currentPath] || pageSuggestions["/dashboard"] || [];
 
   const send = (text: string) => {
-    if (!text.trim() || typing) return;
+    if (!text.trim() || streaming) return;
     setShowSuggestions(false);
+    setCurrentAction(null);
     const userMsg: Message = { role: "user", content: text.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
-    setTyping(true);
+    setStreaming(true);
+
+    // Detect likely tool usage from message content for action indicator
+    const lower = text.toLowerCase();
+    if (lower.includes("client") || lower.includes("inadimpl")) setCurrentAction("buscar_cliente");
+    else if (lower.includes("propost") || lower.includes("pendên")) setCurrentAction("buscar_propostas");
+    else if (lower.includes("alert") || lower.includes("crítico")) setCurrentAction("buscar_alertas");
+    else if (lower.includes("regra") || lower.includes("carência") || lower.includes("cobertur") || lower.includes("tabela") || lower.includes("conhecimento")) setCurrentAction("buscar_conhecimento");
+    else if (lower.includes("métrica") || lower.includes("venda") || lower.includes("conversão") || lower.includes("relatório") || lower.includes("resumo")) setCurrentAction("buscar_metricas");
+    else if (lower.includes("ranking") || lower.includes("vendedor") || lower.includes("performance")) setCurrentAction("buscar_ranking");
+    else setCurrentAction("buscar_metricas");
 
     let assistantSoFar = "";
 
@@ -151,6 +210,8 @@ export function MirandaPanel({
     streamChat(
       apiMessages,
       (chunk) => {
+        // First chunk arriving means tools are done
+        if (!assistantSoFar) setCurrentAction(null);
         assistantSoFar += chunk;
         const current = assistantSoFar;
         setMessages((prev) => {
@@ -160,19 +221,20 @@ export function MirandaPanel({
           }
           return [...prev, { role: "assistant", content: current }];
         });
-        setTyping(false);
       },
       () => {
-        setTyping(false);
+        setStreaming(false);
+        setCurrentAction(null);
       },
       (errorMsg) => {
-        setTyping(false);
+        setStreaming(false);
+        setCurrentAction(null);
         setMessages((prev) => [
           ...prev,
           { role: "assistant", content: `⚠️ ${errorMsg}` },
         ]);
       },
-      { usuario_id: user?.id, contexto_pagina: location.pathname },
+      { usuario_id: user?.id, contexto_pagina: currentPath },
     );
   };
 
@@ -193,15 +255,16 @@ export function MirandaPanel({
       )}
 
       <div
-        className={`fixed top-0 right-0 h-full w-[380px] max-w-full z-[70] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full w-[400px] max-w-full z-[70] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
+        {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 bg-brand">
           <Sparkles className="h-5 w-5 text-brand-foreground" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-brand-foreground">Miranda</p>
-            <p className="text-xs text-brand-foreground/70">Assistente IA</p>
+            <p className="text-xs text-brand-foreground/70">Assistente IA · Agente com acesso aos dados</p>
           </div>
           <button
             onClick={onClose}
@@ -211,6 +274,7 @@ export function MirandaPanel({
           </button>
         </div>
 
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface">
           {messages.map((msg, i) =>
             msg.role === "assistant" ? (
@@ -218,37 +282,65 @@ export function MirandaPanel({
                 <div className="h-7 w-7 shrink-0 rounded-full bg-brand flex items-center justify-center text-[11px] font-bold text-brand-foreground">
                   M
                 </div>
-                <div className="max-w-[80%] rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground leading-relaxed">
-                  {renderContent(msg.content)}
+                <div className="max-w-[85%] rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground leading-relaxed">
+                  <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-2">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                  {streaming && i === messages.length - 1 && <BlinkingCursor />}
                 </div>
               </div>
             ) : (
               <div key={i} className="flex justify-end animate-msg-in">
-                <div className="max-w-[80%] rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground leading-relaxed">
+                <div className="max-w-[85%] rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground leading-relaxed">
                   {msg.content}
                 </div>
               </div>
             )
           )}
 
-          {showSuggestions && (
-            <div className="flex flex-wrap gap-2 animate-msg-in">
-              {quickSuggestions.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => send(s)}
-                  className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-brand-light hover:border-brand transition-colors duration-200"
-                >
-                  {s}
-                </button>
-              ))}
+          {/* Action indicator */}
+          {currentAction && streaming && (
+            <div className="flex items-end gap-2 animate-msg-in">
+              <div className="h-7 w-7 shrink-0 rounded-full bg-brand flex items-center justify-center text-[11px] font-bold text-brand-foreground">
+                M
+              </div>
+              <ActionIndicator action={currentAction} />
             </div>
           )}
 
-          {typing && <TypingIndicator />}
+          {/* Contextual suggestions */}
+          {showSuggestions && (
+            <div className="space-y-3 animate-msg-in">
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => send(s)}
+                    className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-brand-light hover:border-brand transition-colors duration-200"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {quickActions.map((a) => (
+                  <button
+                    key={a.label}
+                    onClick={() => send(a.message)}
+                    className="flex items-center gap-1.5 rounded-lg border border-brand/20 bg-brand-light px-3 py-2 text-xs font-medium text-brand hover:bg-brand hover:text-brand-foreground transition-colors duration-200"
+                  >
+                    <a.icon className="h-3.5 w-3.5" />
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
 
+        {/* Input */}
         <div className="border-t border-border bg-card px-4 py-3 flex items-center gap-2">
           <input
             value={input}
@@ -259,7 +351,7 @@ export function MirandaPanel({
           />
           <button
             onClick={() => send(input)}
-            disabled={!input.trim() || typing}
+            disabled={!input.trim() || streaming}
             className="h-9 w-9 rounded-md bg-brand flex items-center justify-center hover:bg-brand-hover transition-colors disabled:opacity-40"
           >
             <Send className="h-4 w-4 text-brand-foreground" />
