@@ -594,9 +594,11 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
       const message = choice.message;
 
-      // If no tool calls, we have the final answer
+      // If no tool calls, we have the final answer — stream it
       if (!message.tool_calls?.length || choice.finish_reason === "stop") {
-        // Stream the final response
+        // Add the assistant message with tool results to conversation, then stream final
+        conversationMessages.push({ role: "assistant", content: message.content || "" });
+
         const finalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -605,15 +607,19 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
           },
           body: JSON.stringify({
             model: "google/gemini-3-flash-preview",
-            messages: [...conversationMessages, ...(message.content ? [{ role: "assistant", content: message.content }] : [])].filter(m => m.content || m.tool_calls),
+            messages: conversationMessages,
             stream: true,
           }),
         });
 
         if (!finalResponse.ok) {
-          // Fallback: return non-streamed content
-          return new Response(JSON.stringify({ choices: [{ message: { content: message.content || "Desculpe, não consegui processar sua solicitação." } }] }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          // Fallback: return the non-streamed content we already have
+          const fallbackContent = message.content || "Desculpe, não consegui processar sua solicitação.";
+          // Create a simple SSE stream from the content
+          const encoder = new TextEncoder();
+          const sseData = `data: ${JSON.stringify({ choices: [{ delta: { content: fallbackContent } }] })}\n\ndata: [DONE]\n\n`;
+          return new Response(encoder.encode(sseData), {
+            headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
           });
         }
 
