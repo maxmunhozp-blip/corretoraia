@@ -161,10 +161,9 @@ export default function MirandaPage() {
       async () => {
         setStreaming(false);
         setCurrentAction(null);
-        if (assistantSoFar) {
-          await salvarMensagem(cId, "assistant", assistantSoFar);
-          // Remove the optimistic message added by atualizarUltimaMensagem
-          // The salvarMensagem already appends to state, so we need to deduplicate
+        if (assistantSoFar && cId) {
+          // Save to DB without appending to state (already there via atualizarUltimaMensagem)
+          await supabase.from("miranda_mensagens").insert({ conversa_id: cId, role: "assistant", content: assistantSoFar });
         }
       },
       (errorMsg) => {
