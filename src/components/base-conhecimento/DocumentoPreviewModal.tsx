@@ -404,34 +404,9 @@ export function DocumentoPreviewModal({ doc, open, onOpenChange }: Props) {
           {/* Main preview */}
           <div className="flex-1 bg-muted/50 flex items-center justify-center overflow-hidden relative">
             {pdfUrl ? (
-              <object
-                data={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                type="application/pdf"
-                className="w-full h-full"
-              >
-                <div className="flex flex-col items-center justify-center h-full gap-4">
-                  <FileText className="h-16 w-16 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">
-                    Não foi possível exibir o PDF no navegador
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => triggerDownload(pdfUrl, doc.titulo)}
-                    className="bg-brand text-brand-foreground hover:bg-brand-hover"
-                  >
-                    <Download className="h-3.5 w-3.5 mr-1.5" />
-                    Baixar PDF
-                  </Button>
-                </div>
-              </object>
+              <PdfPageViewer url={pdfUrl} title={doc.titulo} />
             ) : imgUrl ? (
-              <div className="w-full h-full flex items-center justify-center p-6 overflow-auto">
-                <img
-                  src={imgUrl}
-                  alt={doc.titulo}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                />
-              </div>
+              <ImageViewer src={imgUrl} alt={doc.titulo} />
             ) : webUrl ? (
               <iframe
                 src={webUrl}
