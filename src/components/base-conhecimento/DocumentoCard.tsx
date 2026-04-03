@@ -1,5 +1,7 @@
-import { FileText, Globe, Image, MoreVertical, Eye, Download, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { FileText, Globe, Image, MoreVertical, Eye, Download, Trash2, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useDeleteConhecimento } from "@/hooks/useBaseConhecimento";
 import { formatDistanceToNow } from "date-fns";
@@ -37,9 +39,28 @@ interface DocData {
   operadoras?: { nome: string } | null;
 }
 
+function triggerDownload(url: string, filename: string) {
+  fetch(url)
+    .then((r) => r.blob())
+    .then((blob) => {
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    })
+    .catch(() => window.open(url, "_blank"));
+}
+
 export function DocumentoCard({ doc, index }: { doc: DocData; index: number }) {
   const Icon = iconMap[doc.tipo || "outro"] || FileText;
   const deleteMut = useDeleteConhecimento();
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const previewUrl = doc.arquivo_url || doc.fonte_url;
 
   const handleDelete = async () => {
     try {
@@ -51,92 +72,126 @@ export function DocumentoCard({ doc, index }: { doc: DocData; index: number }) {
   };
 
   const handleView = () => {
-    const url = doc.arquivo_url || doc.fonte_url;
-    if (url) window.open(url, "_blank");
+    if (previewUrl) setPreviewOpen(true);
   };
 
-  const handleDownload = async () => {
-    if (doc.arquivo_url) {
-      try {
-        const response = await fetch(doc.arquivo_url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = doc.titulo;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      } catch {
-        window.open(doc.arquivo_url, "_blank");
-      }
-    }
+  const handleDownload = () => {
+    if (doc.arquivo_url) triggerDownload(doc.arquivo_url, doc.titulo);
   };
 
   return (
-    <div
-      className={`group rounded-lg border border-border bg-card p-4 opacity-0 transition-all duration-200 hover:shadow-md hover:scale-[1.01] ${
-        doc.status === "processando" ? "animate-pulse" : ""
-      }`}
-      style={{ animation: `staggerIn 0.4s ease-out ${index * 80}ms forwards` }}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="h-10 w-10 rounded-md bg-brand-light flex items-center justify-center shrink-0">
-          <Icon className="h-5 w-5 text-brand" />
+    <>
+      <div
+        className={`group rounded-lg border border-border bg-card p-4 opacity-0 transition-all duration-200 hover:shadow-md hover:scale-[1.01] ${
+          doc.status === "processando" ? "animate-pulse" : ""
+        }`}
+        style={{ animation: `staggerIn 0.4s ease-out ${index * 80}ms forwards` }}
+      >
+        <div className="flex items-start justify-between mb-3">
+          <div className="h-10 w-10 rounded-md bg-brand-light flex items-center justify-center shrink-0">
+            <Icon className="h-5 w-5 text-brand" />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <MoreVertical className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {previewUrl && (
+                <DropdownMenuItem onClick={handleView}><Eye className="h-4 w-4 mr-2" /> Visualizar</DropdownMenuItem>
+              )}
+              {doc.arquivo_url && (
+                <DropdownMenuItem onClick={handleDownload}><Download className="h-4 w-4 mr-2" /> Baixar</DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={handleDelete} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" /> Remover</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-              <MoreVertical className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleView}><Eye className="h-4 w-4 mr-2" /> Ver</DropdownMenuItem>
-            {doc.arquivo_url && (
-              <DropdownMenuItem onClick={handleDownload}><Download className="h-4 w-4 mr-2" /> Baixar</DropdownMenuItem>
+
+        <h4
+          className="text-sm font-medium text-foreground leading-snug mb-2 line-clamp-2 cursor-pointer hover:text-brand transition-colors"
+          onClick={handleView}
+        >
+          {doc.titulo}
+        </h4>
+
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {(doc.operadoras as any)?.nome && (
+            <span className="text-xs text-muted-foreground">{(doc.operadoras as any).nome}</span>
+          )}
+          <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {categoriaLabels[doc.categoria] || doc.categoria}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground">
+            {formatDistanceToNow(new Date(doc.created_at), { addSuffix: true, locale: ptBR })}
+          </span>
+          <div className="flex items-center gap-1.5">
+            {doc.status === "indexado" && (
+              <>
+                <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
+                <span className="text-[11px] font-medium text-[#16A34A]">Indexado</span>
+              </>
             )}
-            <DropdownMenuItem onClick={handleDelete} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" /> Remover</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      <h4 className="text-sm font-medium text-foreground leading-snug mb-2 line-clamp-2">{doc.titulo}</h4>
-
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        {(doc.operadoras as any)?.nome && (
-          <span className="text-xs text-muted-foreground">{(doc.operadoras as any).nome}</span>
-        )}
-        <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-          {categoriaLabels[doc.categoria] || doc.categoria}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] text-muted-foreground">
-          {formatDistanceToNow(new Date(doc.created_at), { addSuffix: true, locale: ptBR })}
-        </span>
-        <div className="flex items-center gap-1.5">
-          {doc.status === "indexado" && (
-            <>
-              <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
-              <span className="text-[11px] font-medium text-[#16A34A]">Indexado</span>
-            </>
-          )}
-          {doc.status === "processando" && (
-            <>
-              <span className="h-2 w-2 rounded-full bg-[#D97706] animate-pulse" />
-              <span className="text-[11px] font-medium text-[#D97706]">Processando</span>
-            </>
-          )}
-          {doc.status === "erro" && (
-            <>
-              <span className="h-2 w-2 rounded-full bg-destructive" />
-              <span className="text-[11px] font-medium text-destructive" title={doc.erro_mensagem || ""}>Erro</span>
-            </>
-          )}
+            {doc.status === "processando" && (
+              <>
+                <span className="h-2 w-2 rounded-full bg-[#D97706] animate-pulse" />
+                <span className="text-[11px] font-medium text-[#D97706]">Processando</span>
+              </>
+            )}
+            {doc.status === "erro" && (
+              <>
+                <span className="h-2 w-2 rounded-full bg-destructive" />
+                <span className="text-[11px] font-medium text-destructive" title={doc.erro_mensagem || ""}>Erro</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Preview Modal */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+            <div className="flex items-center gap-2 min-w-0">
+              <Icon className="h-4 w-4 text-brand shrink-0" />
+              <span className="text-sm font-semibold text-foreground truncate">{doc.titulo}</span>
+              <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground shrink-0">
+                {categoriaLabels[doc.categoria] || doc.categoria}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {doc.arquivo_url && (
+                <button
+                  onClick={() => triggerDownload(doc.arquivo_url!, doc.titulo)}
+                  className="flex items-center gap-1.5 rounded-lg bg-brand text-brand-foreground px-3 py-2 text-xs font-medium hover:bg-brand-hover transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Baixar
+                </button>
+              )}
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="p-1.5 rounded-md hover:bg-muted transition-colors"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 bg-muted">
+            {previewUrl && (
+              <iframe
+                src={previewUrl}
+                className="w-full h-full border-0"
+                title={`Preview: ${doc.titulo}`}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
