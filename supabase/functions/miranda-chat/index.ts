@@ -896,6 +896,33 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
       }
 
 
+      case "salvar_memoria": {
+        const { tipo, titulo, conteudo } = args;
+        // We need corretoraId from the calling context — pass via extra args
+        const { error } = await supabase
+          .from("miranda_memoria")
+          .insert({ tipo, titulo, conteudo });
+        if (error) return JSON.stringify({ erro: error.message });
+        return JSON.stringify({ sucesso: true, mensagem: `Memória "${titulo}" salva com sucesso` });
+      }
+
+      case "ler_memoria": {
+        const [{ data: skills }, { data: memorias }] = await Promise.all([
+          supabase.from("miranda_skills").select("nome, conteudo_md").eq("ativo", true).limit(10),
+          supabase.from("miranda_memoria").select("tipo, titulo, conteudo").eq("ativo", true).order("criado_em", { ascending: false }).limit(30),
+        ]);
+
+        let md = "";
+        if (skills?.length) {
+          for (const s of skills) md += `## Skill: ${s.nome}\n${s.conteudo_md}\n\n`;
+        }
+        if (memorias?.length) {
+          md += "## Memórias\n";
+          for (const m of memorias) md += `- [${m.tipo}] **${m.titulo}**: ${m.conteudo}\n`;
+        }
+        return JSON.stringify({ memoria: md || "Nenhuma memória registrada ainda." });
+      }
+
       default:
         return JSON.stringify({ erro: `Tool "${name}" não implementada` });
     }
