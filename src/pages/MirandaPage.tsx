@@ -11,6 +11,7 @@ import { MirandaMarkdown } from "@/components/MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "@/components/MirandaChart";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DownloadCard } from "@/components/miranda/DownloadCard";
+import { PdfGeneratorCard } from "@/components/miranda/PdfGeneratorCard";
 import { PdfUploadPreview, PdfUploadBubble } from "@/components/miranda/PdfUploadPreview";
 import { gerarRelatorioComparativo, DadosComparativo, TemplateStyle } from "@/lib/gerarRelatorioComparativo";
 import { format } from "date-fns";
