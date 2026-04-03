@@ -131,7 +131,7 @@ export default function MirandaPage() {
   const [hoveredConversa, setHoveredConversa] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateStyle>("detalhado");
-  const [downloads, setDownloads] = useState<Record<string, DownloadInfo>>({});
+  
   const [pdfAttachments, setPdfAttachments] = useState<Record<string, { filename: string; size: string }>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
