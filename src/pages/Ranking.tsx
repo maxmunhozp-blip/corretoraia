@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageWrapper } from "@/components/PageWrapper";
-import { Trophy, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Users, Monitor } from "lucide-react";
 import { useCountUp } from "@/hooks/useCountUp";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
