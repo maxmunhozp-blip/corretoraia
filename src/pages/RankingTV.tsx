@@ -367,6 +367,7 @@ export default function RankingTV() {
 
   return (
     <div className="fixed inset-0 bg-[#0f0f13] text-white overflow-hidden" key={refreshKey}>
+      <ConfettiCanvas active={showConfetti} />
       <style>{`
         @keyframes tvFadeUp {
           from { opacity: 0; transform: translateY(30px); }
