@@ -290,7 +290,7 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v && !uploading && !categorizing) { reset(); } onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FolderOpen className="h-5 w-5 text-brand" />
@@ -390,7 +390,7 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
               </div>
 
               {/* File list */}
-              <ScrollArea className="flex-1 max-h-[300px] border border-border rounded-lg">
+              <ScrollArea className="flex-1 min-h-0 border border-border rounded-lg">
                 <div className="divide-y divide-border">
                   {files.map((f, i) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
