@@ -418,6 +418,28 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
             </div>
           ) : (
             <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
+              {(scanning || categorizing) && (
+                <div className="shrink-0 rounded-lg border border-brand/20 bg-brand-light/50 p-3 flex items-center gap-3">
+                  <Loader2 className="h-4 w-4 text-brand animate-spin shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground">
+                      {scanning ? "Varrendo subpastas…" : "IA categorizando arquivos…"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {scanStats.folders > 0 && (
+                        <span className="inline-flex items-center gap-1 mr-3">
+                          <FolderOpen className="h-3 w-3" />
+                          {scanStats.folders} subpasta{scanStats.folders !== 1 ? "s" : ""} varrida{scanStats.folders !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <File className="h-3 w-3" />
+                        {scanStats.files || files.length} arquivo{(scanStats.files || files.length) !== 1 ? "s" : ""} encontrado{(scanStats.files || files.length) !== 1 ? "s" : ""}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
               {!categorizing && Object.keys(byCategoria).length > 0 && (
                 <div className="shrink-0 rounded-lg border border-brand/20 bg-brand-light/50 p-3 space-y-2">
                   <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
