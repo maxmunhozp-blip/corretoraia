@@ -146,8 +146,18 @@ export function DocumentoCard({ doc, index, searchQuery }: { doc: DocData; index
           className="text-sm font-medium text-foreground leading-snug mb-2 line-clamp-2 cursor-pointer hover:text-brand transition-colors"
           onClick={handleView}
         >
-          {doc.titulo}
+          {searchQuery ? <HighlightText text={doc.titulo} query={searchQuery} /> : doc.titulo}
         </h4>
+
+        {searchQuery && (() => {
+          const snippet = getSnippet(doc.conteudo_extraido, searchQuery);
+          if (!snippet) return null;
+          return (
+            <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-3 bg-muted/50 rounded-md px-2 py-1.5">
+              <HighlightText text={snippet} query={searchQuery} />
+            </p>
+          );
+        })()}
 
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {(doc.operadoras as any)?.nome && (
