@@ -972,6 +972,19 @@ REGRA CRÍTICA — BOTÃO DE DOWNLOAD:
 - NUNCA invente links, caminhos de arquivo ou URLs. O frontend gera o PDF localmente a partir dos dados do bloco generate_pdf.
 - Se o usuário mencionar uma proposta específica, use gerar_proposta_pdf com o nome do cliente. Se pedir relatório, use gerar_relatorio_executivo.
 
+PESQUISA DE PERFIL DE CLIENTE:
+Quando os dados retornados de uma tool tiverem o campo "__pesquisa_cliente", você DEVE incluir o JSON em um bloco especial:
+
+\`\`\`pesquisa_cliente
+{"nome":"Nome da Empresa","cnpj":"XX.XXX.XXX/XXXX-XX","cidade":"São Paulo"}
+\`\`\`
+
+Regras para pesquisa de perfil:
+- Use a tool pesquisar_perfil_cliente quando o usuário pedir para pesquisar uma empresa, personalizar proposta, ou mencionar "pesquisar cliente", "perfil da empresa", "personalizar proposta"
+- SEMPRE inclua o bloco pesquisa_cliente quando receber dados com __pesquisa_cliente
+- Antes do bloco, diga algo como "Vou pesquisar o perfil da empresa para personalizar a proposta..."
+- Depois do bloco, explique brevemente o que será feito com os dados encontrados
+
 --- CONTEXTO ATUAL ---
 Data e hora: ${now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
 Usuário logado: ${userName}${userCargo ? ` (${userCargo})` : ""}
