@@ -1316,6 +1316,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
     let toolResultsContext = "";
     let pdfPayload: Record<string, any> | null = null;
     let pesquisaPayload: Record<string, any> | null = null;
+    let propostaCriadaPayload: Record<string, any> | null = null;
 
     if (toolMessage?.tool_calls?.length) {
       const results: string[] = [];
@@ -1328,7 +1329,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
         } catch { /* empty args */ }
 
         console.log(`Executing tool: ${fnName}`, fnArgs);
-        const result = await executeTool(fnName, fnArgs, supabase, messages);
+        const result = await executeTool(fnName, fnArgs, supabase, messages, { corretoraId, corretoraData, usuario_id });
         console.log(`Tool result length: ${result.length}`);
         results.push(`[Resultado de ${fnName}]: ${result}`);
 
@@ -1340,6 +1341,9 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
           if (parsedResult?.__pesquisa_cliente) {
             pesquisaPayload = parsedResult;
           }
+          if (parsedResult?.__proposta_criada) {
+            propostaCriadaPayload = parsedResult;
+          }
         } catch {
           // ignore non-json tool outputs
         }
@@ -1347,6 +1351,32 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
       toolResultsContext = "\n\n--- DADOS CONSULTADOS ---\n" + results.join("\n\n");
       console.log(`Tool results context length: ${toolResultsContext.length}`);
+    }
+
+    if (propostaCriadaPayload) {
+      const p = propostaCriadaPayload;
+      const baseUrl = Deno.env.get("SITE_URL") || "";
+      const fullLink = baseUrl ? `${baseUrl}/p/${p.slug}` : `/p/${p.slug}`;
+      const propostaJson = JSON.stringify({
+        slug: p.slug,
+        link: fullLink,
+        cliente_nome: p.cliente_nome,
+        economia_mensal: p.economia_mensal,
+        economia_percentual: p.economia_percentual,
+      });
+
+      const economiaPart = p.economia_mensal > 0
+        ? `\n\n💰 **Economia projetada:** R$ ${Number(p.economia_mensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês (${Number(p.economia_percentual).toFixed(1)}%)`
+        : "";
+
+      // If we also have a PDF payload, include it
+      let pdfBlock = "";
+      if (pdfPayload) {
+        pdfBlock = `\n\n\`\`\`generate_pdf\n${JSON.stringify(pdfPayload)}\n\`\`\``;
+      }
+
+      const msg = `✅ **Proposta criada com sucesso para ${p.cliente_nome}!**${economiaPart}\n\nO link da proposta interativa está pronto para envio ao cliente.\n\n\`\`\`proposta_criada\n${propostaJson}\n\`\`\`${pdfBlock}`;
+      return streamTextAsSse(msg);
     }
 
     if (pdfPayload) {
