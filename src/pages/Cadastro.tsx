@@ -286,6 +286,16 @@ export default function Cadastro() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="cnpj">CNPJ</Label>
+                  <Input
+                    id="cnpj"
+                    placeholder="00.000.000/0000-00"
+                    value={form.cnpj}
+                    onChange={(e) => setForm({ ...form, cnpj: formatCNPJ(e.target.value) })}
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="nome">Seu nome completo *</Label>
                   <Input
                     id="nome"
