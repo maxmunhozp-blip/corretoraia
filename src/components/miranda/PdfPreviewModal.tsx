@@ -89,9 +89,9 @@ export function PdfPreviewModal({ url, filename, open, onClose }: PdfPreviewModa
   const currentCanvas = pages[selected];
 
   return (
-    <div className="fixed inset-0 z-[9999] flex bg-black/80 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] flex bg-black/80 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
-        className="flex h-full w-full max-w-[95vw] max-h-[95vh] m-auto rounded-xl overflow-hidden bg-background shadow-2xl border border-border"
+        className="flex h-full w-full max-w-[95vw] max-h-[95vh] m-auto rounded-xl overflow-hidden bg-background shadow-2xl border border-border animate-scale-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Sidebar - Thumbnails */}
