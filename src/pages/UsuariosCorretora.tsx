@@ -213,7 +213,7 @@ export default function UsuariosCorretora() {
                     <SelectItem value="admin_corretora">
                       Administrador
                     </SelectItem>
-                    <SelectItem value="corretor">Corretor</SelectItem>
+                    <SelectItem value="vendedor">Vendedor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
