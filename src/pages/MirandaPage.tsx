@@ -651,7 +651,7 @@ export default function MirandaPage() {
         </ScrollArea>
 
         {/* Input area */}
-        <div className="border-t border-border bg-card px-6 py-4">
+        <div className="border-t border-border bg-card px-4 md:px-6 py-4">
           <div className="max-w-3xl mx-auto">
             {attachedFile && (
               <div className="space-y-2 mb-2">
