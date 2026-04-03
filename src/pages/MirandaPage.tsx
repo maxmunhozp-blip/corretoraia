@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMirandaConversas } from "@/hooks/useMirandaConversas";
+import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import { MirandaChart, parseMessageWithCharts } from "@/components/MirandaChart";
 import { ScrollArea } from "@/components/ui/scroll-area";
