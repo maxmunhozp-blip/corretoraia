@@ -349,7 +349,7 @@ export default function MirandaPage() {
   ];
 
   return (
-    <div className="flex h-[calc(100vh-0px)] bg-background -m-6">
+    <div className="flex h-[calc(100vh-0px)] bg-background -m-6 overflow-hidden">
       {/* LEFT SIDEBAR */}
       <div className="w-[280px] border-r border-border flex flex-col bg-card shrink-0">
         <div className="px-4 pt-5 pb-3">
