@@ -2,17 +2,19 @@ import {
   FileText,
   UserPlus,
   CheckCircle,
-  PhoneCall,
   Send,
+  AlertTriangle,
+  LucideIcon,
 } from "lucide-react";
+import { atividadeRecente, type TipoEvento } from "@/data/mock";
 
-const events = [
-  { icon: FileText, text: "Nova proposta criada para Empresa ABC", time: "Há 12 min" },
-  { icon: UserPlus, text: "Cliente João Silva cadastrado", time: "Há 34 min" },
-  { icon: CheckCircle, text: "Proposta #1042 aprovada pela operadora", time: "Há 1h" },
-  { icon: PhoneCall, text: "Follow-up agendado com Maria Souza", time: "Há 2h" },
-  { icon: Send, text: "Cotação enviada para Tech Solutions", time: "Há 3h" },
-];
+const iconMap: Record<TipoEvento, LucideIcon> = {
+  proposta_criada: FileText,
+  status_alterado: CheckCircle,
+  cliente_cadastrado: UserPlus,
+  documento_enviado: Send,
+  alerta_gerado: AlertTriangle,
+};
 
 export function ActivityFeed({ index }: { index: number }) {
   return (
@@ -22,17 +24,20 @@ export function ActivityFeed({ index }: { index: number }) {
     >
       <h3 className="text-sm font-medium text-muted-foreground mb-4">Atividade recente</h3>
       <div className="space-y-4">
-        {events.map((ev, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <div className="mt-0.5 h-7 w-7 shrink-0 rounded-md bg-surface flex items-center justify-center">
-              <ev.icon className="h-3.5 w-3.5 text-muted-foreground" />
+        {atividadeRecente.slice(0, 6).map((ev, i) => {
+          const Icon = iconMap[ev.tipo];
+          return (
+            <div key={i} className="flex items-start gap-3">
+              <div className="mt-0.5 h-7 w-7 shrink-0 rounded-md bg-surface flex items-center justify-center">
+                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground leading-snug">{ev.descricao}</p>
+                <span className="text-xs text-muted-foreground">{ev.vendedor} • {ev.hora}</span>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-foreground leading-snug">{ev.text}</p>
-              <span className="text-xs text-muted-foreground">{ev.time}</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
