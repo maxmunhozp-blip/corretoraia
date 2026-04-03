@@ -286,6 +286,8 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
     setProgress(0);
     setStep("select");
     setCategorizing(false);
+    setScanning(false);
+    setScanStats({ folders: 0, files: 0 });
     if (folderInputRef.current) folderInputRef.current.value = "";
   };
 
