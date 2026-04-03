@@ -421,7 +421,7 @@ export function MirandaPanel({
                     </div>
                   </div>
                 ) : (
-                  <div key={msg.id || i} className="flex justify-end animate-msg-in">
+                  <div key={msg.id || i} className="flex justify-end">
                     <div className="max-w-[85%] rounded-xl bg-brand-light px-4 py-3 text-sm text-foreground leading-relaxed">
                       {msg.content}
                     </div>
