@@ -22,9 +22,22 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const extractionPrompt = `Você é um especialista em análise de planos de saúde. Analise este PDF de comparativo de planos e extraia todos os dados estruturados.
+    const extractionPrompt = `Você é um especialista em análise de planos de saúde com experiência em TODAS as operadoras brasileiras (Bradesco Saúde, SulAmérica, Amil, Unimed, Notre Dame Intermédica, Hapvida, Porto Seguro Saúde, Omint, Medial, Golden Cross, entre outras).
+
+Sua tarefa é analisar este PDF de comparativo de planos e extrair TODOS os dados estruturados, independente do formato ou layout do documento.
 
 Contexto adicional do usuário: ${mensagem || "Gere o relatório comparativo."}
+
+REGRAS DE EXTRAÇÃO:
+1. O PDF pode ter QUALQUER formato: tabelas horizontais, verticais, múltiplas páginas, com ou sem IOF, com ou sem consolidação.
+2. Identifique QUAL é o plano atual do cliente (geralmente destacado, na primeira coluna, ou indicado como "atual/vigente").
+3. Identifique TODOS os beneficiários/vidas com seus nomes, idades e valores por plano.
+4. Se o PDF não tiver consolidação explícita, CALCULE a consolidação somando os valores de cada alternativa e comparando com o plano atual.
+5. Para valores não disponíveis ou "sob consulta", use 0.
+6. Se houver valores com IOF e sem IOF, prefira os valores COM IOF.
+7. Extraia a data de referência do documento. Se não encontrar, use a data atual.
+8. O título deve refletir o conteúdo (ex: "Comparativo de Planos - Empresa XYZ").
+9. Se o PDF tiver informações sobre coparticipação, rede credenciada ou acomodação, inclua no campo observacoes_gerais.
 
 IMPORTANTE: Retorne os dados via a tool/function fornecida. Extraia TODOS os beneficiários e TODAS as alternativas de planos encontrados no documento.`;
 
@@ -41,7 +54,7 @@ IMPORTANTE: Retorne os dados via a tool/function fornecida. Extraia TODOS os ben
           {
             role: "user",
             content: [
-              { type: "text", text: "Extraia os dados deste relatório comparativo de planos de saúde e retorne via a tool fornecida." },
+              { type: "text", text: "Extraia os dados deste relatório comparativo de planos de saúde e retorne via a tool fornecida. Analise cuidadosamente o layout, identifique todas as operadoras, beneficiários e valores." },
               { type: "image_url", image_url: { url: `data:application/pdf;base64,${arquivo_pdf_base64}` } },
             ],
           },
@@ -55,17 +68,18 @@ IMPORTANTE: Retorne os dados via a tool/function fornecida. Extraia TODOS os ben
               parameters: {
                 type: "object",
                 properties: {
-                  titulo: { type: "string", description: "Título do relatório" },
+                  titulo: { type: "string", description: "Título do relatório, ex: 'Comparativo de Planos - Empresa ABC'" },
                   plano_atual: {
                     type: "object",
                     properties: {
-                      nome: { type: "string" },
-                      operadora: { type: "string" },
+                      nome: { type: "string", description: "Nome do plano atual" },
+                      operadora: { type: "string", description: "Operadora do plano atual" },
                     },
                     required: ["nome", "operadora"],
                   },
                   beneficiarios: {
                     type: "array",
+                    description: "Lista de TODOS os beneficiários encontrados no PDF",
                     items: {
                       type: "object",
                       properties: {
@@ -90,19 +104,21 @@ IMPORTANTE: Retorne os dados via a tool/function fornecida. Extraia TODOS os ben
                   },
                   consolidacao: {
                     type: "array",
+                    description: "Consolidação de economia por alternativa. Se não presente no PDF, calcule somando valores dos beneficiários.",
                     items: {
                       type: "object",
                       properties: {
                         plano: { type: "string" },
                         operadora: { type: "string" },
                         total_iof: { type: "number", description: "Total mensal com IOF" },
-                        reducao_mensal: { type: "number", description: "Economia mensal comparada ao plano atual" },
-                        reducao_anual: { type: "number", description: "Economia anual" },
-                        percentual_reducao: { type: "number", description: "Percentual de redução" },
+                        reducao_mensal: { type: "number", description: "Economia mensal comparada ao plano atual (valor positivo)" },
+                        reducao_anual: { type: "number", description: "Economia anual (valor positivo)" },
+                        percentual_reducao: { type: "number", description: "Percentual de redução (valor positivo)" },
                       },
                       required: ["plano", "operadora", "total_iof", "reducao_mensal", "reducao_anual", "percentual_reducao"],
                     },
                   },
+                  observacoes_gerais: { type: "string", description: "Informações adicionais encontradas no PDF: coparticipação, rede, acomodação, carências, etc." },
                   data_referencia: { type: "string", description: "Data de referência do comparativo (ex: Março/2026)" },
                 },
                 required: ["titulo", "plano_atual", "beneficiarios", "consolidacao", "data_referencia"],
