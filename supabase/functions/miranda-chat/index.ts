@@ -787,6 +787,17 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
           data = response.data;
         }
 
+        const corretoraInfo = corretoraData ? {
+          nome: corretoraData.nome,
+          telefone: corretoraData.telefone,
+          email: corretoraData.email,
+          site: corretoraData.site,
+          cidade: corretoraData.cidade,
+          estado: corretoraData.estado,
+          cor_primaria: corretoraData.cor_primaria,
+          cor_secundaria: corretoraData.cor_secundaria,
+        } : undefined;
+
         if (data?.length) {
           const p = data[0];
           const propostaData = {
@@ -801,6 +812,11 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
             responsavel: p.profiles?.nome,
             observacoes: p.observacoes,
             created_at: p.created_at,
+            corretora_nome: corretoraData?.nome,
+            corretora_cnpj: corretoraData?.cnpj,
+            corretora_telefone: corretoraData?.telefone,
+            corretora_email: corretoraData?.email,
+            corretora: corretoraInfo,
             ...explicitArgs,
           };
           return JSON.stringify(propostaData);
@@ -814,6 +830,8 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
           empresa: explicitArgs.empresa || conversationProposal.empresa || explicitArgs.cliente_nome || conversationProposal.cliente_nome,
           status: explicitArgs.status || conversationProposal.status || "simulada",
           created_at: explicitArgs.created_at || conversationProposal.created_at || new Date().toISOString(),
+          corretora_nome: corretoraData?.nome,
+          corretora: corretoraInfo,
         };
 
         if (!contextualProposal.cliente_nome) {
@@ -947,6 +965,7 @@ serve(async (req) => {
     let userCargo = "";
     let corretoraId: string | null = null;
     let memoriaContexto = "";
+    let corretoraData: Record<string, any> | null = null;
 
     const profilePromise = usuario_id
       ? supabase.from("profiles").select("nome, cargo, role, corretora_id").eq("id", usuario_id).single()
@@ -964,6 +983,16 @@ serve(async (req) => {
       userName = profileResult.data.nome;
       userCargo = profileResult.data.cargo || "";
       corretoraId = profileResult.data.corretora_id;
+
+      // Fetch corretora data for brand colors
+      if (corretoraId) {
+        const { data: corr } = await supabase
+          .from("corretoras")
+          .select("nome, cnpj, telefone, email, site, cidade, estado, cor_primaria, cor_secundaria, logo_url")
+          .eq("id", corretoraId)
+          .single();
+        if (corr) corretoraData = corr;
+      }
     }
 
     // Load memory (skills + memorias)
