@@ -7,7 +7,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useMirandaConversas } from "@/hooks/useMirandaConversas";
 import { supabase } from "@/integrations/supabase/client";
-import ReactMarkdown from "react-markdown";
+import { MirandaMarkdown } from "@/components/MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "@/components/MirandaChart";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
