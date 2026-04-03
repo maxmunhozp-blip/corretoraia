@@ -34,7 +34,7 @@ export default function MinhaCorretora() {
     enabled: !!corretora_id,
   });
 
-  if (profile?.role !== "admin_corretora") {
+  if (profile?.role !== "admin_corretora" && profile?.role !== "master") {
     return <Navigate to="/dashboard" replace />;
   }
 
