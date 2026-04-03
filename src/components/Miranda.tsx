@@ -271,6 +271,7 @@ export function MirandaPanel({
     setMensagens([]);
     setShowSuggestions(true);
     setShowHistory(false);
+    setPesquisaResult(null);
   };
 
   const handleSelectConversa = (id: string) => {
