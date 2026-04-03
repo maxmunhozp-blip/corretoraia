@@ -517,7 +517,30 @@ export default function MirandaPage() {
         <div className="border-t border-border bg-card px-6 py-4">
           <div className="max-w-3xl mx-auto">
             {attachedFile && (
-              <PdfUploadPreview file={attachedFile} onRemove={() => setAttachedFile(null)} />
+              <div className="space-y-2 mb-2">
+                <PdfUploadPreview file={attachedFile} onRemove={() => setAttachedFile(null)} />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">Template:</span>
+                  {([
+                    { value: "executivo" as TemplateStyle, label: "Executivo", desc: "Resumido" },
+                    { value: "detalhado" as TemplateStyle, label: "Detalhado", desc: "Completo" },
+                    { value: "apresentacao" as TemplateStyle, label: "Apresentação", desc: "Para cliente" },
+                  ]).map((t) => (
+                    <button
+                      key={t.value}
+                      onClick={() => setSelectedTemplate(t.value)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        selectedTemplate === t.value
+                          ? "bg-brand text-brand-foreground"
+                          : "bg-surface text-muted-foreground hover:text-foreground hover:bg-surface/80"
+                      }`}
+                      title={t.desc}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
             <div className="flex items-center gap-3">
               <input
