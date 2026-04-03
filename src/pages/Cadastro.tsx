@@ -84,10 +84,22 @@ export default function Cadastro() {
     setStep("dados");
   };
 
+  const formatWhatsApp = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return `(${digits}`;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.email || !form.senha || !form.nome || !form.nomeCorretora) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+    const whatsDigits = form.telefone.replace(/\D/g, "");
+    if (whatsDigits.length < 10) {
+      toast.error("Informe um número de WhatsApp válido");
       return;
     }
     if (form.senha.length < 6) {
@@ -113,8 +125,8 @@ export default function Cadastro() {
 
       if (error) throw error;
 
-      toast.success("Conta criada! Verifique seu e-mail para confirmar o cadastro.");
-      navigate("/login");
+      toast.success("Conta criada com sucesso! Bem-vindo ao Cora 🎉");
+      navigate("/onboarding");
     } catch (err: any) {
       toast.error(err.message || "Erro ao criar conta");
     } finally {
@@ -261,12 +273,13 @@ export default function Cadastro() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="telefone">Telefone</Label>
+                  <Label htmlFor="telefone">WhatsApp *</Label>
                   <Input
                     id="telefone"
                     placeholder="(11) 99999-9999"
                     value={form.telefone}
-                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                    onChange={(e) => setForm({ ...form, telefone: formatWhatsApp(e.target.value) })}
+                    required
                   />
                 </div>
 

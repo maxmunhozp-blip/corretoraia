@@ -44,6 +44,7 @@ const App = () => (
         <AuthProvider>
           <ImpersonationProvider>
             <Routes>
+              <Route path="/" element={<Landing />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/cadastro" element={<Cadastro />} />
               <Route path="/login" element={<Login />} />
@@ -56,7 +57,7 @@ const App = () => (
                   </ProtectedRoute>
                 }
               >
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/propostas" element={<Propostas />} />
                 <Route path="/clientes" element={<Clientes />} />
