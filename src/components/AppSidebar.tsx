@@ -7,6 +7,7 @@ import {
   Bell,
   BookOpen,
   Lock,
+  Code2,
   Settings,
   LogOut,
 } from "lucide-react";
