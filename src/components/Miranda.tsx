@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Sparkles, X, Send } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   role: "assistant" | "user";
