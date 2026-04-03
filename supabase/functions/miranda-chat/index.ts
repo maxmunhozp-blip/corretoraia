@@ -75,10 +75,18 @@ function extractProposalContext(messages: { role: string; content: string }[] = 
   const valorEstimado = parseCurrency(
     getLineValue(["Proposta Bradesco (simulação)", "Proposta Bradesco", "Valor mensal proposto (total)"])
   );
-  const valorAtual = parseCurrency(getLineValue(["Custo atual (SulAmérica)", "Custo atual"]));
+  const valorAtual = parseCurrency(getLineValue(["Custo atual (SulAmérica)", "Custo atual", "Valor atual"]));
   const acomodacao = getLineValue(["Acomodação"]);
   const odontologico = getLineValue(["Odontológico"]);
   const compraCarencia = getLineValue(["Compra de carência"]);
+  const produto = getLineValue(["Produto"]) || subtitlePlanParts[1];
+  const operadora = getLineValue(["Operadora"]) || subtitlePlanParts[0];
+  const idades = getLineValue(["Idades", "Beneficiários", "Beneficiarios"]);
+  const economia = parseCurrency(getLineValue(["Economia estimada", "Economia mensal"]));
+  const percentualEconomiaText = getLineValue(["Percentual de economia", "Redução percentual", "% economia"]);
+  const percentualEconomia = percentualEconomiaText
+    ? Number((percentualEconomiaText.replace(",", ".").match(/-?\d+(?:\.\d+)?/) || [])[0])
+    : undefined;
 
   const observacoes = [
     compraCarencia,
@@ -93,11 +101,14 @@ function extractProposalContext(messages: { role: string; content: string }[] = 
     vidas,
     valor_estimado: valorEstimado,
     valor_atual: valorAtual,
-    operadora: getLineValue(["Operadora"]) || subtitlePlanParts[0],
-    produto: getLineValue(["Produto"]) || subtitlePlanParts[1],
+    economia_mensal: economia,
+    percentual_economia: percentualEconomia,
+    operadora,
+    produto,
     acomodacao,
     odontologico,
     compra_carencia: compraCarencia,
+    idades,
     observacoes: observacoes || undefined,
     status: "simulada",
     created_at: new Date().toISOString(),
