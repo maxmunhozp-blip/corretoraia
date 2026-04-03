@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       .toUpperCase();
 
     async function createProfileForUser(userId: string) {
-      const { error: profileError } = await adminClient.from("profiles").insert({
+      const { error: profileError } = await adminClient.from("profiles").upsert({
         id: userId,
         nome,
         cargo: cargo || null,
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
         corretora_id: corretora_id || null,
         avatar_iniciais: initials,
         ativo: true,
-      });
+      }, { onConflict: "id" });
 
       return profileError;
     }
@@ -203,15 +203,7 @@ Deno.serve(async (req) => {
       return respondFormError(authError.message || "Erro ao convidar usuário");
     }
 
-    const { data: existingProfile } = await adminClient
-      .from("profiles")
-      .select("id")
-      .eq("id", authData.user.id)
-      .maybeSingle();
-
-    if (existingProfile) {
-      return respondFormError("Este e-mail já está cadastrado no sistema.");
-    }
+    // upsert handles trigger-created profiles gracefully
 
     const profileError = await createProfileForUser(authData.user.id);
 
