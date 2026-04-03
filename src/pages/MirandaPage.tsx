@@ -105,6 +105,16 @@ function BlinkingCursor() {
   return <span className="inline-block w-[2px] h-[1em] bg-brand animate-pulse ml-0.5 align-text-bottom" />;
 }
 
+function TypingDots() {
+  return (
+    <div className="flex items-center gap-1 px-3 py-2">
+      <span className="h-2 w-2 rounded-full bg-brand/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+      <span className="h-2 w-2 rounded-full bg-brand/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+      <span className="h-2 w-2 rounded-full bg-brand/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+    </div>
+  );
+}
+
 async function streamChat(
   messages: { role: string; content: string }[],
   onDelta: (text: string) => void,
