@@ -200,8 +200,15 @@ export default function MirandaPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isFirstLoad = useRef(true);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isFirstLoad.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+      isFirstLoad.current = false;
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [mensagens, streaming]);
 
   const detectAction = (text: string) => {
