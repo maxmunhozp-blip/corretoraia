@@ -183,7 +183,7 @@ export default function UsuariosCorretora() {
   });
 
   const roleLabel = (r: string) =>
-    r === "admin_corretora" ? "Administrador" : r === "vendedor" ? "Vendedor" : r === "gerente" ? "Gerente" : r;
+    r === "admin_corretora" ? "Administrador" : r === "vendedor" ? "Vendedor" : r === "gerente" ? "Gerente" : r === "master" ? "Master" : r;
 
   return (
     <PageWrapper
