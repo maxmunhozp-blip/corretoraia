@@ -692,6 +692,12 @@ Regras para PDFs:
 - Depois do bloco, adicione um resumo dos dados principais encontrados
 - Se a tool retornar erro, informe o usuário sem o bloco generate_pdf
 
+REGRA CRÍTICA — BOTÃO DE DOWNLOAD:
+- Quando o usuário pedir "botão de download", "baixar PDF", "me dê o PDF", "download da proposta", "gerar PDF" ou qualquer variação, você DEVE chamar a tool correspondente (gerar_proposta_pdf ou gerar_relatorio_executivo) para obter os dados reais.
+- NUNCA descreva um botão de download em texto. O botão de download SÓ aparece quando você inclui o bloco \`\`\`generate_pdf\`\`\` com os dados reais.
+- NUNCA invente links, caminhos de arquivo ou URLs. O frontend gera o PDF localmente a partir dos dados do bloco generate_pdf.
+- Se o usuário mencionar uma proposta específica, use gerar_proposta_pdf com o nome do cliente. Se pedir relatório, use gerar_relatorio_executivo.
+
 --- CONTEXTO ATUAL ---
 Data e hora: ${now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
 Usuário logado: ${userName}${userCargo ? ` (${userCargo})` : ""}
