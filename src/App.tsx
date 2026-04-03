@@ -32,6 +32,7 @@ import UsuariosCorretora from "./pages/UsuariosCorretora";
 import Landing from "./pages/Landing";
 import Cadastro from "./pages/Cadastro";
 import Onboarding from "./pages/Onboarding";
+import PropostaPublica from "./pages/PropostaPublica";
 
 const queryClient = new QueryClient();
 
