@@ -125,8 +125,8 @@ export default function Cadastro() {
 
       if (error) throw error;
 
-      toast.success("Conta criada! Verifique seu e-mail para confirmar o cadastro.");
-      navigate("/login");
+      toast.success("Conta criada com sucesso! Bem-vindo ao Cora 🎉");
+      navigate("/onboarding");
     } catch (err: any) {
       toast.error(err.message || "Erro ao criar conta");
     } finally {
