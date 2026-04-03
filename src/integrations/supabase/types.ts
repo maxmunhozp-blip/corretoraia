@@ -17,6 +17,7 @@ export type Database = {
       alertas: {
         Row: {
           cliente_id: string | null
+          corretora_id: string | null
           created_at: string
           descricao: string | null
           id: string
@@ -27,6 +28,7 @@ export type Database = {
         }
         Insert: {
           cliente_id?: string | null
+          corretora_id?: string | null
           created_at?: string
           descricao?: string | null
           id?: string
@@ -37,6 +39,7 @@ export type Database = {
         }
         Update: {
           cliente_id?: string | null
+          corretora_id?: string | null
           created_at?: string
           descricao?: string | null
           id?: string
@@ -53,11 +56,19 @@ export type Database = {
             referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "alertas_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
         ]
       }
       atividades: {
         Row: {
           autor_id: string | null
+          corretora_id: string | null
           created_at: string
           descricao: string
           entidade_id: string | null
@@ -67,6 +78,7 @@ export type Database = {
         }
         Insert: {
           autor_id?: string | null
+          corretora_id?: string | null
           created_at?: string
           descricao: string
           entidade_id?: string | null
@@ -76,6 +88,7 @@ export type Database = {
         }
         Update: {
           autor_id?: string | null
+          corretora_id?: string | null
           created_at?: string
           descricao?: string
           entidade_id?: string | null
@@ -91,6 +104,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "atividades_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
         ]
       }
       base_conhecimento: {
@@ -99,6 +119,7 @@ export type Database = {
           arquivo_url: string | null
           categoria: string
           conteudo_extraido: string | null
+          corretora_id: string | null
           created_at: string
           descricao: string | null
           erro_mensagem: string | null
@@ -114,6 +135,7 @@ export type Database = {
           arquivo_url?: string | null
           categoria: string
           conteudo_extraido?: string | null
+          corretora_id?: string | null
           created_at?: string
           descricao?: string | null
           erro_mensagem?: string | null
@@ -129,6 +151,7 @@ export type Database = {
           arquivo_url?: string | null
           categoria?: string
           conteudo_extraido?: string | null
+          corretora_id?: string | null
           created_at?: string
           descricao?: string | null
           erro_mensagem?: string | null
@@ -148,6 +171,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "base_conhecimento_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "base_conhecimento_operadora_id_fkey"
             columns: ["operadora_id"]
             isOneToOne: false
@@ -158,6 +188,7 @@ export type Database = {
       }
       clientes: {
         Row: {
+          corretora_id: string | null
           created_at: string
           email: string | null
           empresa: string | null
@@ -174,6 +205,7 @@ export type Database = {
           vidas: number
         }
         Insert: {
+          corretora_id?: string | null
           created_at?: string
           email?: string | null
           empresa?: string | null
@@ -190,6 +222,7 @@ export type Database = {
           vidas?: number
         }
         Update: {
+          corretora_id?: string | null
           created_at?: string
           email?: string | null
           empresa?: string | null
@@ -206,6 +239,13 @@ export type Database = {
           vidas?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "clientes_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clientes_operadora_id_fkey"
             columns: ["operadora_id"]
@@ -240,6 +280,69 @@ export type Database = {
           created_at?: string
           id?: string
           valor?: string | null
+        }
+        Relationships: []
+      }
+      corretoras: {
+        Row: {
+          assinatura_fim: string | null
+          assinatura_inicio: string | null
+          cidade: string | null
+          cnpj: string | null
+          created_at: string | null
+          email: string
+          estado: string | null
+          id: string
+          logo_url: string | null
+          max_usuarios: number | null
+          nome: string
+          onboarding_completo: boolean | null
+          plano: string | null
+          site: string | null
+          status: string | null
+          telefone: string | null
+          trial_expira_em: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assinatura_fim?: string | null
+          assinatura_inicio?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          email: string
+          estado?: string | null
+          id?: string
+          logo_url?: string | null
+          max_usuarios?: number | null
+          nome: string
+          onboarding_completo?: boolean | null
+          plano?: string | null
+          site?: string | null
+          status?: string | null
+          telefone?: string | null
+          trial_expira_em?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assinatura_fim?: string | null
+          assinatura_inicio?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          email?: string
+          estado?: string | null
+          id?: string
+          logo_url?: string | null
+          max_usuarios?: number | null
+          nome?: string
+          onboarding_completo?: boolean | null
+          plano?: string | null
+          site?: string | null
+          status?: string | null
+          telefone?: string | null
+          trial_expira_em?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -343,6 +446,7 @@ export type Database = {
       }
       miranda_conversas: {
         Row: {
+          corretora_id: string | null
           created_at: string
           id: string
           titulo: string
@@ -350,6 +454,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          corretora_id?: string | null
           created_at?: string
           id?: string
           titulo?: string
@@ -357,13 +462,22 @@ export type Database = {
           user_id: string
         }
         Update: {
+          corretora_id?: string | null
           created_at?: string
           id?: string
           titulo?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "miranda_conversas_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       miranda_mensagens: {
         Row: {
@@ -433,42 +547,90 @@ export type Database = {
         }
         Relationships: []
       }
+      planos: {
+        Row: {
+          ativo: boolean | null
+          id: string
+          max_propostas: number | null
+          max_usuarios: number | null
+          nome: string
+          preco: number
+          recursos: Json | null
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          id?: string
+          max_propostas?: number | null
+          max_usuarios?: number | null
+          nome: string
+          preco: number
+          recursos?: Json | null
+          slug: string
+        }
+        Update: {
+          ativo?: boolean | null
+          id?: string
+          max_propostas?: number | null
+          max_usuarios?: number | null
+          nome?: string
+          preco?: number
+          recursos?: Json | null
+          slug?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ativo: boolean
           avatar_iniciais: string | null
           cargo: string | null
+          corretora_id: string | null
           created_at: string
           foto_url: string | null
           id: string
           nome: string
           role: string
+          ultimo_acesso: string | null
         }
         Insert: {
           ativo?: boolean
           avatar_iniciais?: string | null
           cargo?: string | null
+          corretora_id?: string | null
           created_at?: string
           foto_url?: string | null
           id: string
           nome: string
           role?: string
+          ultimo_acesso?: string | null
         }
         Update: {
           ativo?: boolean
           avatar_iniciais?: string | null
           cargo?: string | null
+          corretora_id?: string | null
           created_at?: string
           foto_url?: string | null
           id?: string
           nome?: string
           role?: string
+          ultimo_acesso?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       propostas: {
         Row: {
           cliente_nome: string
+          corretora_id: string | null
           created_at: string
           empresa: string | null
           id: string
@@ -482,6 +644,7 @@ export type Database = {
         }
         Insert: {
           cliente_nome: string
+          corretora_id?: string | null
           created_at?: string
           empresa?: string | null
           id?: string
@@ -495,6 +658,7 @@ export type Database = {
         }
         Update: {
           cliente_nome?: string
+          corretora_id?: string | null
           created_at?: string
           empresa?: string | null
           id?: string
@@ -507,6 +671,13 @@ export type Database = {
           vidas?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "propostas_corretora_id_fkey"
+            columns: ["corretora_id"]
+            isOneToOne: false
+            referencedRelation: "corretoras"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "propostas_operadora_id_fkey"
             columns: ["operadora_id"]
@@ -695,7 +866,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_corretora_id: { Args: { _user_id: string }; Returns: string }
+      get_user_role: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
