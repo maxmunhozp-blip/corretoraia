@@ -273,12 +273,13 @@ export default function Cadastro() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="telefone">Telefone</Label>
+                  <Label htmlFor="telefone">WhatsApp *</Label>
                   <Input
                     id="telefone"
                     placeholder="(11) 99999-9999"
                     value={form.telefone}
-                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                    onChange={(e) => setForm({ ...form, telefone: formatWhatsApp(e.target.value) })}
+                    required
                   />
                 </div>
 
