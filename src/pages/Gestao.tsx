@@ -137,7 +137,7 @@ export default function Gestao() {
   };
 
   return (
-    <PageWrapper title="Gestão" subtitle="Cadastro de CEOs, equipe e indicadores executivos">
+    <PageWrapper title="Gestão">
       <Tabs defaultValue="executivos" className="space-y-4">
         <TabsList>
           <TabsTrigger value="executivos" className="gap-2"><Crown className="h-4 w-4" />CEOs e Executivos</TabsTrigger>

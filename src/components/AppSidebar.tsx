@@ -23,6 +23,7 @@ const navItems = [
   { title: "Base de Conhecimento", url: "/base-conhecimento", icon: BookOpen },
   { title: "Acessos", url: "/acessos", icon: Lock },
   { title: "Desenvolvimento", url: "/desenvolvimento", icon: Code2 },
+  { title: "Gestão", url: "/gestao", icon: Building2 },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
