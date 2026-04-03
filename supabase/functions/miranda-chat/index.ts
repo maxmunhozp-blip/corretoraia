@@ -33,6 +33,25 @@ function getForcedToolChoice(latestUserMessage: string) {
       "gere o relatório",
     ].some((term) => text.includes(term));
 
+  const hasPropostaInterativaIntent = [
+    "criar proposta interativa",
+    "proposta interativa",
+    "gerar link",
+    "link da proposta",
+    "enviar proposta",
+    "montar proposta",
+    "crie a proposta para",
+    "crie uma proposta para",
+    "gere a proposta para",
+    "gere uma proposta para",
+    "criar proposta para",
+    "gerar proposta para",
+  ].some((term) => text.includes(term));
+
+  if (hasPropostaInterativaIntent) {
+    return { type: "function", function: { name: "criar_proposta_interativa" } };
+  }
+
   if (!hasPdfIntent) return null;
 
   if (text.includes("relatorio executivo") || text.includes("relatorio do dia") || text.includes("relatório") || text.includes("relatorio")) {
