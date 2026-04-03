@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePropostas, useOperadoras, useProfiles, useCreateProposta } from "@/hooks/usePropostas";
+import { PropostasInterativasTab } from "@/components/propostas/PropostasInterativasTab";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
