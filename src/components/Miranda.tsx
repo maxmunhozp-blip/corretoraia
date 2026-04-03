@@ -170,6 +170,7 @@ export function MirandaPanel({
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [hoveredConversa, setHoveredConversa] = useState<string | null>(null);
+  const [pesquisaResult, setPesquisaResult] = useState<Record<string, any> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
@@ -270,6 +271,7 @@ export function MirandaPanel({
     setMensagens([]);
     setShowSuggestions(true);
     setShowHistory(false);
+    setPesquisaResult(null);
   };
 
   const handleSelectConversa = (id: string) => {
@@ -388,9 +390,17 @@ export function MirandaPanel({
                         ) : segment.type === "download" ? (
                           <DownloadCard key={si} filename={segment.data.filename} size={segment.data.size} url={segment.data.url} />
                         ) : segment.type === "generate_pdf" ? (
-                          <PdfGeneratorCard key={si} data={segment.data} />
+                          <PdfGeneratorCard key={si} data={
+                            pesquisaResult && segment.data.__pdf_type === "proposta_completa"
+                              ? {
+                                  ...segment.data,
+                                  personalizacao: pesquisaResult.personalizacao,
+                                  perfil_cliente: pesquisaResult.perfil,
+                                }
+                              : segment.data
+                          } />
                         ) : segment.type === "pesquisa_cliente" ? (
-                          <PesquisaClienteCard key={si} data={segment.data} />
+                          <PesquisaClienteCard key={si} data={segment.data} onResult={(r) => setPesquisaResult(r)} />
                         ) : (
                           <MirandaMarkdown key={si} content={segment.content} />
                         )
