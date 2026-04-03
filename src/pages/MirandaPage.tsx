@@ -35,7 +35,7 @@ interface ChatMessage {
   content: string;
   created_at: string;
   pdfAttachment?: { filename: string; size: string };
-  download?: DownloadInfo;
+  
 }
 
 function ActionIndicator({ action }: { action: string }) {
