@@ -196,8 +196,15 @@ export default function UsuariosCorretora() {
                 <Input
                   type="email"
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) => { setForm({ ...form, email: e.target.value }); setEmailError(""); }}
+                  className={emailError ? "border-destructive" : ""}
                 />
+                {emailError && (
+                  <p className="flex items-center gap-1 text-xs text-destructive mt-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {emailError}
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Cargo</Label>
