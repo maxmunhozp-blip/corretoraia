@@ -523,6 +523,54 @@ export type Database = {
           },
         ]
       }
+      ranking_vendedores: {
+        Row: {
+          ativo: boolean
+          avatar_iniciais: string | null
+          cargo: string
+          conversao: number
+          created_at: string
+          foto_url: string | null
+          id: string
+          meta_mensal: number
+          nome: string
+          propostas_ativas: number
+          receita_gerada: number
+          updated_at: string
+          vendas: number
+        }
+        Insert: {
+          ativo?: boolean
+          avatar_iniciais?: string | null
+          cargo?: string
+          conversao?: number
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          meta_mensal?: number
+          nome: string
+          propostas_ativas?: number
+          receita_gerada?: number
+          updated_at?: string
+          vendas?: number
+        }
+        Update: {
+          ativo?: boolean
+          avatar_iniciais?: string | null
+          cargo?: string
+          conversao?: number
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          meta_mensal?: number
+          nome?: string
+          propostas_ativas?: number
+          receita_gerada?: number
+          updated_at?: string
+          vendas?: number
+        }
+        Relationships: []
+      }
       solicitacao_comentarios: {
         Row: {
           autor_id: string
