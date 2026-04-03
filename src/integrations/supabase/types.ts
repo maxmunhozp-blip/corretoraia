@@ -1066,6 +1066,45 @@ export type Database = {
           },
         ]
       }
+      templates: {
+        Row: {
+          assunto: string | null
+          ativo: boolean
+          categoria: string
+          conteudo: string
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+          variaveis: Json | null
+        }
+        Insert: {
+          assunto?: string | null
+          ativo?: boolean
+          categoria?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          nome: string
+          tipo?: string
+          updated_at?: string
+          variaveis?: Json | null
+        }
+        Update: {
+          assunto?: string | null
+          ativo?: boolean
+          categoria?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+          variaveis?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
