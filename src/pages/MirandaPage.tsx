@@ -433,7 +433,7 @@ export default function MirandaPage() {
             {conversas.map((c) => (
               <div
                 key={c.id}
-                onClick={() => { if (editingConversa !== c.id) carregarMensagens(c.id); }}
+                onClick={() => { if (editingConversa !== c.id) { isFirstLoad.current = true; carregarMensagens(c.id); } }}
                 className={`group relative flex items-center gap-2 rounded-lg px-3 py-2.5 cursor-pointer text-sm transition-colors duration-150 ${
                   conversaAtiva === c.id
                     ? "bg-[#F5EDEC] border-l-[3px] border-l-[#955251] text-foreground"
