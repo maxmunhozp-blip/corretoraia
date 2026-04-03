@@ -389,7 +389,7 @@ export function MirandaPanel({
             <>
               {displayMessages.map((msg, i) =>
                 msg.role === "assistant" ? (
-                  <div key={msg.id || i} className="flex items-end gap-2 animate-msg-in">
+                  <div key={msg.id || i} className="flex items-end gap-2">
                     <div className="h-7 w-7 shrink-0 rounded-full bg-brand flex items-center justify-center text-[11px] font-bold text-brand-foreground">
                       M
                     </div>
