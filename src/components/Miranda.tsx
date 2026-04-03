@@ -351,6 +351,8 @@ export function MirandaPanel({
                           <MirandaChart key={si} data={segment.data} />
                         ) : segment.type === "download" ? (
                           <DownloadCard key={si} filename={segment.data.filename} size={segment.data.size} url={segment.data.url} />
+                        ) : segment.type === "generate_pdf" ? (
+                          <PdfGeneratorCard key={si} data={segment.data} />
                         ) : (
                           <MirandaMarkdown key={si} content={segment.content} />
                         )
