@@ -1041,6 +1041,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
     // Step 2: If tool calls exist, execute them and collect results
     let toolResultsContext = "";
     let pdfPayload: Record<string, any> | null = null;
+    let pesquisaPayload: Record<string, any> | null = null;
 
     if (toolMessage?.tool_calls?.length) {
       const results: string[] = [];
@@ -1062,6 +1063,9 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
           if (parsedResult?.__pdf_type) {
             pdfPayload = parsedResult;
           }
+          if (parsedResult?.__pesquisa_cliente) {
+            pesquisaPayload = parsedResult;
+          }
         } catch {
           // ignore non-json tool outputs
         }
@@ -1073,6 +1077,13 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
     if (pdfPayload) {
       return streamTextAsSse(buildPdfAssistantMessage(pdfPayload));
+    }
+
+    if (pesquisaPayload) {
+      const { nome, cnpj, cidade, site } = pesquisaPayload;
+      const pesquisaJson = JSON.stringify(compactObject({ nome, cnpj, cidade, site }));
+      const msg = `Vou pesquisar o perfil da empresa **${nome}** para personalizar a proposta.\n\n\`\`\`pesquisa_cliente\n${pesquisaJson}\n\`\`\`\n\nAssim que a pesquisa terminar, usarei os dados encontrados para criar uma proposta personalizada com linguagem e argumentos sob medida.`;
+      return streamTextAsSse(msg);
     }
 
     // Step 3: Stream final response with tool results injected into context
