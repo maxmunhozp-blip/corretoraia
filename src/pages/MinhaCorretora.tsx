@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 
 export default function MinhaCorretora() {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -34,7 +34,17 @@ export default function MinhaCorretora() {
     enabled: !!corretora_id,
   });
 
-  if (profile?.role !== "admin_corretora" && profile?.role !== "master") {
+  if (authLoading || !profile) {
+    return (
+      <PageWrapper title="Minha Corretora">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (profile.role !== "admin_corretora" && profile.role !== "master") {
     return <Navigate to="/dashboard" replace />;
   }
 
