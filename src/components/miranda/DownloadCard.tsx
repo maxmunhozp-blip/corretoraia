@@ -64,13 +64,7 @@ export function DownloadCard({ filename, size, url }: DownloadCardProps) {
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => {
-                  const w = window.open("", "_blank");
-                  if (w) {
-                    w.document.write(`<html><head><title>${filename}</title></head><body style="margin:0"><embed src="${url}" type="application/pdf" width="100%" height="100%" style="position:absolute;inset:0" /></body></html>`);
-                    w.document.close();
-                  }
-                }}
+                onClick={() => window.open(url, "_blank")}
                 className="p-1.5 rounded-md hover:bg-background transition-colors"
                 title="Abrir em tela cheia"
               >
@@ -85,11 +79,11 @@ export function DownloadCard({ filename, size, url }: DownloadCardProps) {
               </button>
             </div>
           </div>
-          <embed
-            src={url}
-            type="application/pdf"
-            className="w-full"
+          <iframe
+            src={`${url}#toolbar=1&navpanes=0`}
+            className="w-full border-0"
             style={{ height: 480 }}
+            title={filename}
           />
         </div>
       )}
