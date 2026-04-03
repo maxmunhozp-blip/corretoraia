@@ -175,8 +175,16 @@ export function MirandaPanel({
   const bottomRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
+  const isFirstLoad = useRef(true);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isFirstLoad.current) {
+      // Instant scroll on first load / conversation switch
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+      isFirstLoad.current = false;
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [mensagens, streaming, currentAction]);
 
   // Reset suggestions when conversation changes
