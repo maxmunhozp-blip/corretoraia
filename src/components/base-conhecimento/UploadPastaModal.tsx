@@ -237,22 +237,25 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+    setScanning(true);
+    setScanStats({ folders: 0, files: 0 });
+    setStep("review");
 
     const items = e.dataTransfer.items;
-    if (!items || items.length === 0) return;
+    if (!items || items.length === 0) { setScanning(false); setStep("select"); return; }
 
     const allFiles: File[] = [];
 
     for (let i = 0; i < items.length; i++) {
       const entry = (items[i] as any).webkitGetAsEntry?.();
       if (!entry) {
-        // Fallback: use file directly
         const file = items[i].getAsFile();
         if (file) allFiles.push(file);
         continue;
       }
 
       if (entry.isDirectory) {
+        setScanStats((prev) => ({ ...prev, folders: prev.folders + 1 }));
         const dirFiles = await readAllEntries(entry, entry.name);
         allFiles.push(...dirFiles);
       } else if (entry.isFile) {
@@ -261,12 +264,14 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
       }
     }
 
+    setScanning(false);
+
     if (allFiles.length === 0) {
       toast.error("Nenhum arquivo encontrado na pasta");
+      setStep("select");
       return;
     }
 
-    // Create a fake FileList-like structure
     const dt = new DataTransfer();
     allFiles.forEach((f) => dt.items.add(f));
     scanAndCategorize(dt.files);
