@@ -85,6 +85,8 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
   const [files, setFiles] = useState<ScannedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [categorizing, setCategorizing] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanStats, setScanStats] = useState({ folders: 0, files: 0 });
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [step, setStep] = useState<"select" | "review" | "uploading">("select");
@@ -95,7 +97,11 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
   const processar = useProcessarConhecimento();
 
   const scanAndCategorize = async (fileList: FileList) => {
+    setScanning(true);
+    setStep("review");
     const scanned: ScannedFile[] = [];
+    const foldersSet = new Set<string>();
+
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
       const ext = file.name.split(".").pop()?.toLowerCase() || "";
@@ -104,6 +110,10 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
       if (file.size > 50 * 1024 * 1024) continue;
 
       const relativePath = (file as any).webkitRelativePath || file.name;
+      const folder = relativePath.substring(0, relativePath.lastIndexOf("/")) || "/";
+      foldersSet.add(folder);
+      setScanStats({ folders: foldersSet.size, files: scanned.length + 1 });
+
       scanned.push({
         file,
         relativePath,
@@ -112,8 +122,11 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
       });
     }
 
+    setScanning(false);
+
     if (scanned.length === 0) {
       toast.error("Nenhum arquivo compatível encontrado na pasta");
+      setStep("select");
       return;
     }
 
@@ -199,7 +212,6 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
           for (const entry of entries) {
             if (entry.isFile) {
               const file: File = await new Promise((res) => entry.file((f: File) => {
-                // Attach relative path manually
                 Object.defineProperty(f, "webkitRelativePath", {
                   value: `${basePath}/${entry.name}`,
                   writable: false,
@@ -207,13 +219,14 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
                 res(f);
               }));
               allFiles.push(file);
+              setScanStats((prev) => ({ ...prev, files: prev.files + 1 }));
             } else if (entry.isDirectory) {
+              setScanStats((prev) => ({ ...prev, folders: prev.folders + 1 }));
               const subFiles = await readAllEntries(entry, `${basePath}/${entry.name}`);
               allFiles.push(...subFiles);
             }
           }
 
-          // Chrome returns entries in batches of 100, so keep reading
           readBatch();
         });
       };
@@ -224,22 +237,25 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+    setScanning(true);
+    setScanStats({ folders: 0, files: 0 });
+    setStep("review");
 
     const items = e.dataTransfer.items;
-    if (!items || items.length === 0) return;
+    if (!items || items.length === 0) { setScanning(false); setStep("select"); return; }
 
     const allFiles: File[] = [];
 
     for (let i = 0; i < items.length; i++) {
       const entry = (items[i] as any).webkitGetAsEntry?.();
       if (!entry) {
-        // Fallback: use file directly
         const file = items[i].getAsFile();
         if (file) allFiles.push(file);
         continue;
       }
 
       if (entry.isDirectory) {
+        setScanStats((prev) => ({ ...prev, folders: prev.folders + 1 }));
         const dirFiles = await readAllEntries(entry, entry.name);
         allFiles.push(...dirFiles);
       } else if (entry.isFile) {
@@ -248,12 +264,14 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
       }
     }
 
+    setScanning(false);
+
     if (allFiles.length === 0) {
       toast.error("Nenhum arquivo encontrado na pasta");
+      setStep("select");
       return;
     }
 
-    // Create a fake FileList-like structure
     const dt = new DataTransfer();
     allFiles.forEach((f) => dt.items.add(f));
     scanAndCategorize(dt.files);
@@ -268,6 +286,8 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
     setProgress(0);
     setStep("select");
     setCategorizing(false);
+    setScanning(false);
+    setScanStats({ folders: 0, files: 0 });
     if (folderInputRef.current) folderInputRef.current.value = "";
   };
 
@@ -398,7 +418,29 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
             </div>
           ) : (
             <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
-              {!categorizing && Object.keys(byCategoria).length > 0 && (
+              {(scanning || categorizing) && (
+                <div className="shrink-0 rounded-lg border border-brand/20 bg-brand-light/50 p-3 flex items-center gap-3">
+                  <Loader2 className="h-4 w-4 text-brand animate-spin shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground">
+                      {scanning ? "Varrendo subpastas…" : "IA categorizando arquivos…"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {scanStats.folders > 0 && (
+                        <span className="inline-flex items-center gap-1 mr-3">
+                          <FolderOpen className="h-3 w-3" />
+                          {scanStats.folders} subpasta{scanStats.folders !== 1 ? "s" : ""} varrida{scanStats.folders !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <File className="h-3 w-3" />
+                        {scanStats.files || files.length} arquivo{(scanStats.files || files.length) !== 1 ? "s" : ""} encontrado{(scanStats.files || files.length) !== 1 ? "s" : ""}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
+              {!categorizing && !scanning && Object.keys(byCategoria).length > 0 && (
                 <div className="shrink-0 rounded-lg border border-brand/20 bg-brand-light/50 p-3 space-y-2">
                   <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                     <Sparkles className="h-3.5 w-3.5 text-brand" />
