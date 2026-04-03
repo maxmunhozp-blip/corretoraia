@@ -1,11 +1,11 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   FolderOpen, FileText, FileSpreadsheet, Image, File,
-  CheckCircle2, XCircle, Loader2, Upload, Sparkles, Tag,
+  CheckCircle2, XCircle, Loader2, Upload, Sparkles, Tag, PartyPopper,
 } from "lucide-react";
 import { useCreateConhecimento, useUploadConhecimento, useProcessarConhecimento } from "@/hooks/useBaseConhecimento";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,12 +89,77 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
   const [scanStats, setScanStats] = useState({ folders: 0, files: 0 });
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
-  const [step, setStep] = useState<"select" | "review" | "uploading">("select");
+  const [step, setStep] = useState<"select" | "review" | "uploading" | "done">("select");
+  const [showCelebration, setShowCelebration] = useState(false);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const celebrationCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const createDoc = useCreateConhecimento();
   const uploadFile = useUploadConhecimento();
   const processar = useProcessarConhecimento();
+
+  // Confetti celebration animation
+  useEffect(() => {
+    if (!showCelebration || !celebrationCanvasRef.current) return;
+    const canvas = celebrationCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.parentElement?.getBoundingClientRect();
+    canvas.width = rect?.width || 500;
+    canvas.height = rect?.height || 400;
+
+    const colors = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#a855f7", "#06b6d4", "#ec4899"];
+    const particles: { x: number; y: number; vx: number; vy: number; r: number; color: string; rot: number; rv: number; shape: number; opacity: number }[] = [];
+
+    for (let i = 0; i < 120; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 100,
+        y: canvas.height * 0.6,
+        vx: (Math.random() - 0.5) * 14,
+        vy: -Math.random() * 10 - 4,
+        r: Math.random() * 5 + 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * Math.PI * 2,
+        rv: (Math.random() - 0.5) * 0.3,
+        shape: Math.floor(Math.random() * 3),
+        opacity: 1,
+      });
+    }
+
+    let frame: number;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.18;
+        p.vx *= 0.99;
+        p.rot += p.rv;
+        p.opacity -= 0.006;
+        if (p.opacity <= 0) continue;
+        alive = true;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.globalAlpha = p.opacity;
+        ctx.fillStyle = p.color;
+        if (p.shape === 0) {
+          ctx.fillRect(-p.r / 2, -p.r, p.r, p.r * 2);
+        } else if (p.shape === 1) {
+          ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill();
+        } else {
+          ctx.beginPath(); ctx.moveTo(0, -p.r); ctx.lineTo(p.r, p.r); ctx.lineTo(-p.r, p.r); ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+      }
+      if (alive) frame = requestAnimationFrame(animate);
+      else setShowCelebration(false);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [showCelebration]);
 
   const scanAndCategorize = async (fileList: FileList) => {
     setScanning(true);
@@ -288,6 +353,7 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
     setCategorizing(false);
     setScanning(false);
     setScanStats({ folders: 0, files: 0 });
+    setShowCelebration(false);
     if (folderInputRef.current) folderInputRef.current.value = "";
   };
 
@@ -345,6 +411,8 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
     }
 
     setUploading(false);
+    setStep("done");
+    setShowCelebration(true);
     toast.success(
       `Upload concluído: ${completed} arquivo${completed !== 1 ? "s" : ""} enviado${completed !== 1 ? "s" : ""}${errors > 0 ? `, ${errors} erro${errors !== 1 ? "s" : ""}` : ""}`
     );
@@ -540,46 +608,77 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
               </div>
 
               {uploading && <Progress value={progress} className="shrink-0 h-2 [&>div]:bg-brand" />}
+
+              {/* Celebration overlay */}
+              {step === "done" && (
+                <div className="shrink-0 rounded-lg border border-green-200 bg-green-50 p-5 relative overflow-hidden">
+                  <canvas ref={celebrationCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" />
+                  <div className="relative z-20 flex flex-col items-center gap-2 text-center">
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center animate-scale-in">
+                      <PartyPopper className="h-6 w-6 text-green-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-green-800 animate-fade-in">
+                      Tudo pronto! 🎉
+                    </p>
+                    <p className="text-xs text-green-600 animate-fade-in">
+                      {doneCount} arquivo{doneCount !== 1 ? "s" : ""} processado{doneCount !== 1 ? "s" : ""} com sucesso
+                      {errorCount > 0 && ` · ${errorCount} erro${errorCount !== 1 ? "s" : ""}`}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         <DialogFooter className="shrink-0 border-t border-border px-6 py-4">
-          <Button
-            variant="ghost"
-            onClick={() => { if (!uploading && !categorizing) { onOpenChange(false); reset(); } }}
-            disabled={uploading || categorizing}
-          >
-            Cancelar
-          </Button>
-          {step === "review" && !uploading && !categorizing && (
-            <Button variant="outline" onClick={reset}>
-              Trocar pasta
-            </Button>
-          )}
-          {step !== "select" && (
+          {step === "done" ? (
             <Button
-              onClick={handleUploadAll}
-              disabled={categorizedCount === 0 || uploading || categorizing}
+              onClick={() => { onOpenChange(false); reset(); }}
               className="bg-brand text-brand-foreground hover:bg-brand-hover"
             >
-              {categorizing ? (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
-                  IA categorizando...
-                </>
-              ) : uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Enviando {doneCount + errorCount + 1}/{files.length}...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Enviar {categorizedCount} arquivo{categorizedCount !== 1 ? "s" : ""} categorizados
-                </>
-              )}
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Concluir
             </Button>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => { if (!uploading && !categorizing) { onOpenChange(false); reset(); } }}
+                disabled={uploading || categorizing}
+              >
+                Cancelar
+              </Button>
+              {step === "review" && !uploading && !categorizing && (
+                <Button variant="outline" onClick={reset}>
+                  Trocar pasta
+                </Button>
+              )}
+              {step !== "select" && (
+                <Button
+                  onClick={handleUploadAll}
+                  disabled={categorizedCount === 0 || uploading || categorizing}
+                  className="bg-brand text-brand-foreground hover:bg-brand-hover"
+                >
+                  {categorizing ? (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                      IA categorizando...
+                    </>
+                  ) : uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enviando {doneCount + errorCount + 1}/{files.length}...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Enviar {categorizedCount} arquivo{categorizedCount !== 1 ? "s" : ""} categorizados
+                    </>
+                  )}
+                </Button>
+              )}
+            </>
           )}
         </DialogFooter>
       </DialogContent>
