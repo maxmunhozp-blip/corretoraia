@@ -1,4 +1,4 @@
-const FALLBACK_PUBLIC_ORIGIN = "https://corretoraia.lovable.app";
+const FALLBACK_PUBLIC_ORIGIN = "https://corretoraia.com";
 
 function normalizeOrigin(origin: string) {
   return origin.replace(/\/+$/, "");
