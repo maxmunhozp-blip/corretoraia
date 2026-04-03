@@ -332,6 +332,29 @@ export default function RankingTV() {
     return () => clearInterval(t);
   }, []);
 
+  // Detect new meta achievers → trigger confetti
+  useEffect(() => {
+    const currentAchievers = new Set(
+      vendedores
+        .filter((v) => v.meta_mensal > 0 && v.receita_gerada >= v.meta_mensal)
+        .map((v) => v.id)
+    );
+    const prev = prevMetaAchieversRef.current;
+    const hasNew = [...currentAchievers].some((id) => !prev.has(id));
+
+    if (hasNew && prev.size > 0) {
+      // Only trigger after initial load (prev.size > 0 means we already loaded once)
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 6000);
+    }
+    // Also trigger on first load if anyone is at 100%
+    if (prev.size === 0 && currentAchievers.size > 0) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 6000);
+    }
+    prevMetaAchieversRef.current = currentAchievers;
+  }, [vendedores]);
+
   const top3 = vendedores.slice(0, 3);
   const rest = vendedores.slice(3);
 
