@@ -56,20 +56,25 @@ export default function UsuariosCorretora() {
     return <Navigate to="/dashboard" replace />;
   }
 
+  const isMaster = profile?.role === "master";
   const corretora_id = (profile as any)?.corretora_id;
 
   const { data: usuarios = [], isLoading: isLoadingUsuarios } = useQuery({
-    queryKey: ["corretora-usuarios", corretora_id],
+    queryKey: ["corretora-usuarios", corretora_id, isMaster],
     queryFn: async () => {
-      if (!corretora_id) return [];
-      const { data } = await supabase
+      let query = supabase
         .from("profiles")
         .select("*")
-        .eq("corretora_id", corretora_id)
         .order("created_at", { ascending: false });
+
+      if (!isMaster && corretora_id) {
+        query = query.eq("corretora_id", corretora_id);
+      }
+
+      const { data } = await query;
       return data ?? [];
     },
-    enabled: !!corretora_id,
+    enabled: isMaster || !!corretora_id,
   });
 
   const { data: corretora } = useQuery({
