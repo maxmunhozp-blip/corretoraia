@@ -105,46 +105,55 @@ export function MirandaChart({ data }: { data: ChartData }) {
   );
 }
 
+export interface DownloadData {
+  filename: string;
+  size: number;
+  url: string;
+}
+
 /**
- * Parse message content and extract chart blocks.
- * Returns an array of segments: either { type: 'text', content } or { type: 'chart', data }.
+ * Parse message content and extract chart and download blocks.
  */
-export function parseMessageWithCharts(content: string): Array<
-  { type: "text"; content: string } | { type: "chart"; data: ChartData }
-> {
-  const segments: Array<{ type: "text"; content: string } | { type: "chart"; data: ChartData }> = [];
-  const regex = /```chart\s*\n?([\s\S]*?)```/g;
+export type MessageSegment =
+  | { type: "text"; content: string }
+  | { type: "chart"; data: ChartData }
+  | { type: "download"; data: DownloadData };
+
+export function parseMessageWithCharts(content: string): MessageSegment[] {
+  const segments: MessageSegment[] = [];
+  // Match both ```chart and ```download blocks
+  const regex = /```(chart|download)\s*\n?([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
 
   while ((match = regex.exec(content)) !== null) {
-    // Text before the chart block
     if (match.index > lastIndex) {
       const text = content.slice(lastIndex, match.index).trim();
       if (text) segments.push({ type: "text", content: text });
     }
 
-    // Parse the chart JSON
+    const blockType = match[1];
     try {
-      const chartData = JSON.parse(match[1].trim()) as ChartData;
-      if (chartData.tipo && chartData.dados && chartData.titulo) {
-        segments.push({ type: "chart", data: chartData });
+      const parsed = JSON.parse(match[2].trim());
+      if (blockType === "chart" && parsed.tipo && parsed.dados && parsed.titulo) {
+        segments.push({ type: "chart", data: parsed as ChartData });
+      } else if (blockType === "download" && parsed.filename) {
+        segments.push({ type: "download", data: parsed as DownloadData });
+      } else {
+        segments.push({ type: "text", content: match[0] });
       }
     } catch {
-      // If JSON is invalid, treat as text
       segments.push({ type: "text", content: match[0] });
     }
 
     lastIndex = match.index + match[0].length;
   }
 
-  // Remaining text after last chart
   if (lastIndex < content.length) {
     const text = content.slice(lastIndex).trim();
     if (text) segments.push({ type: "text", content: text });
   }
 
-  // If no charts found, return single text segment
   if (segments.length === 0) {
     segments.push({ type: "text", content });
   }
