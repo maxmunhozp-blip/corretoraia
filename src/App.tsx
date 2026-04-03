@@ -3,7 +3,11 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
+import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Propostas from "./pages/Propostas";
 import Clientes from "./pages/Clientes";
@@ -22,20 +26,30 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/propostas" element={<Propostas />} />
-            <Route path="/clientes" element={<Clientes />} />
-            <Route path="/ranking" element={<Ranking />} />
-            <Route path="/alertas" element={<Alertas />} />
-            <Route path="/base-conhecimento" element={<BaseConhecimento />} />
-            <Route path="/acessos" element={<Acessos />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/propostas" element={<Propostas />} />
+              <Route path="/clientes" element={<Clientes />} />
+              <Route path="/ranking" element={<Ranking />} />
+              <Route path="/alertas" element={<Alertas />} />
+              <Route path="/base-conhecimento" element={<BaseConhecimento />} />
+              <Route path="/acessos" element={<Acessos />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
