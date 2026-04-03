@@ -543,7 +543,7 @@ export default function MirandaPage() {
           </div>
           <button
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
-            className="p-2 rounded-md hover:bg-surface transition-colors"
+            className="hidden xl:flex p-2 rounded-md hover:bg-surface transition-colors"
             title={rightPanelOpen ? "Fechar painel" : "Abrir painel"}
           >
             {rightPanelOpen ? <PanelRightClose className="h-4 w-4 text-muted-foreground" /> : <PanelRightOpen className="h-4 w-4 text-muted-foreground" />}
