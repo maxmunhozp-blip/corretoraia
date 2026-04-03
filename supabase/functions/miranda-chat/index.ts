@@ -1067,6 +1067,23 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
         const economiaMensal = planoAtualValor > 0 ? planoAtualValor - (melhorAlternativa?.valor_mensal || 0) : 0;
         const economiaPercentual = planoAtualValor > 0 ? (economiaMensal / planoAtualValor) * 100 : 0;
 
+        // Build embedded PDF payload so both PDF + interactive are always available
+        const embeddedPdf: Record<string, any> = {
+          __pdf_type: "proposta",
+          cliente_nome,
+          empresa: cliente_empresa || cliente_nome,
+          vidas: vidas || alternativas.length,
+          valor_estimado: melhorAlternativa?.valor_mensal || 0,
+          valor_atual: planoAtualValor || undefined,
+          economia_mensal: economiaMensal > 0 ? economiaMensal : undefined,
+          operadora: melhorAlternativa?.operadora || melhorAlternativa?.nome || "—",
+          produto: melhorAlternativa?.nome || "—",
+          acomodacao: melhorAlternativa?.acomodacao || "Apartamento",
+          observacoes: (alternativas as any[]).map((a: any) => a.nome || a.operadora).join(" • "),
+          status: "simulada",
+          created_at: new Date().toISOString(),
+        };
+
         return JSON.stringify({
           __proposta_criada: true,
           slug,
@@ -1075,6 +1092,7 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
           cliente_nome,
           economia_mensal: economiaMensal > 0 ? economiaMensal : undefined,
           economia_percentual: economiaPercentual > 0 ? Number(economiaPercentual.toFixed(2)) : undefined,
+          __embedded_pdf: embeddedPdf,
         });
       }
 
