@@ -583,7 +583,7 @@ export default function MasterConfiguracoes() {
                       </div>
 
                       <p className="text-xs text-muted-foreground line-clamp-2">
-                        {t.conteudo.replace(/[#*_\[\]]/g, "").substring(0, 120)}...
+                        {t.conteudo.replace(/[#*_[\]]/g, "").substring(0, 120)}...
                       </p>
 
                       <div className="flex gap-1 pt-1">
