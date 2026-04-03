@@ -61,8 +61,17 @@ export default function UsuariosCorretora() {
         query = query.eq("corretora_id", corretora_id);
       }
 
-      const { data } = await query;
-      return data ?? [];
+      const { data: profiles } = await query;
+      if (!profiles?.length) return [];
+
+      // Fetch emails from auth via edge function
+      const userIds = profiles.map((p: any) => p.id);
+      const { data: emailData } = await supabase.functions.invoke("admin-create-user", {
+        body: { action: "list-emails", user_ids: userIds },
+      });
+
+      const emailMap = emailData?.emails || {};
+      return profiles.map((p: any) => ({ ...p, email: emailMap[p.id] || null }));
     },
     enabled: isMaster || !!corretora_id,
   });
