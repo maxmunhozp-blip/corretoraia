@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DownloadCard } from "@/components/miranda/DownloadCard";
 import { PdfGeneratorCard } from "@/components/miranda/PdfGeneratorCard";
 import { PdfUploadPreview, PdfUploadBubble } from "@/components/miranda/PdfUploadPreview";
+import { PesquisaClienteCard } from "@/components/miranda/PesquisaClienteCard";
 import { gerarRelatorioComparativo, DadosComparativo, TemplateStyle } from "@/lib/gerarRelatorioComparativo";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -519,6 +520,8 @@ export default function MirandaPage() {
                         <DownloadCard key={si} filename={seg.data.filename} size={seg.data.size} url={seg.data.url} />
                       ) : seg.type === "generate_pdf" ? (
                         <PdfGeneratorCard key={si} data={seg.data} />
+                      ) : seg.type === "pesquisa_cliente" ? (
+                        <PesquisaClienteCard key={si} data={seg.data} />
                       ) : (
                         <MirandaMarkdown key={si} content={seg.content} />
                       )

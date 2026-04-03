@@ -374,6 +374,23 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "pesquisar_perfil_cliente",
+      description: "Pesquisa dados públicos de uma empresa na internet (DuckDuckGo, ReceitaWS, site oficial) e usa IA para criar um perfil comercial personalizado para propostas de plano de saúde. Use quando o usuário pedir para pesquisar um cliente, personalizar proposta, ou quando mencionar CNPJ/empresa para gerar proposta personalizada.",
+      parameters: {
+        type: "object",
+        properties: {
+          nome: { type: "string", description: "Nome da empresa/cliente" },
+          cnpj: { type: "string", description: "CNPJ da empresa (opcional)" },
+          cidade: { type: "string", description: "Cidade da empresa (opcional)" },
+          site: { type: "string", description: "URL do site oficial (opcional)" },
+        },
+        required: ["nome"],
+      },
+    },
+  },
 ];
 
 // Tool implementations
@@ -695,6 +712,18 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
         return JSON.stringify({ sucesso: true, mensagem: `Alerta "${titulo}" criado com sucesso` });
       }
 
+      case "pesquisar_perfil_cliente": {
+        const { nome, cnpj, cidade, site } = args;
+        // Return a special marker that the frontend renders as a PesquisaClienteCard
+        return JSON.stringify({
+          __pesquisa_cliente: true,
+          nome,
+          cnpj: cnpj || undefined,
+          cidade: cidade || undefined,
+          site: site || undefined,
+        });
+      }
+
       case "gerar_proposta_pdf": {
         const conversationProposal = extractProposalContext(messages);
         const explicitArgs = compactObject({
@@ -943,6 +972,19 @@ REGRA CRÍTICA — BOTÃO DE DOWNLOAD:
 - NUNCA invente links, caminhos de arquivo ou URLs. O frontend gera o PDF localmente a partir dos dados do bloco generate_pdf.
 - Se o usuário mencionar uma proposta específica, use gerar_proposta_pdf com o nome do cliente. Se pedir relatório, use gerar_relatorio_executivo.
 
+PESQUISA DE PERFIL DE CLIENTE:
+Quando os dados retornados de uma tool tiverem o campo "__pesquisa_cliente", você DEVE incluir o JSON em um bloco especial:
+
+\`\`\`pesquisa_cliente
+{"nome":"Nome da Empresa","cnpj":"XX.XXX.XXX/XXXX-XX","cidade":"São Paulo"}
+\`\`\`
+
+Regras para pesquisa de perfil:
+- Use a tool pesquisar_perfil_cliente quando o usuário pedir para pesquisar uma empresa, personalizar proposta, ou mencionar "pesquisar cliente", "perfil da empresa", "personalizar proposta"
+- SEMPRE inclua o bloco pesquisa_cliente quando receber dados com __pesquisa_cliente
+- Antes do bloco, diga algo como "Vou pesquisar o perfil da empresa para personalizar a proposta..."
+- Depois do bloco, explique brevemente o que será feito com os dados encontrados
+
 --- CONTEXTO ATUAL ---
 Data e hora: ${now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
 Usuário logado: ${userName}${userCargo ? ` (${userCargo})` : ""}
@@ -999,6 +1041,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
     // Step 2: If tool calls exist, execute them and collect results
     let toolResultsContext = "";
     let pdfPayload: Record<string, any> | null = null;
+    let pesquisaPayload: Record<string, any> | null = null;
 
     if (toolMessage?.tool_calls?.length) {
       const results: string[] = [];
@@ -1020,6 +1063,9 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
           if (parsedResult?.__pdf_type) {
             pdfPayload = parsedResult;
           }
+          if (parsedResult?.__pesquisa_cliente) {
+            pesquisaPayload = parsedResult;
+          }
         } catch {
           // ignore non-json tool outputs
         }
@@ -1031,6 +1077,13 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
     if (pdfPayload) {
       return streamTextAsSse(buildPdfAssistantMessage(pdfPayload));
+    }
+
+    if (pesquisaPayload) {
+      const { nome, cnpj, cidade, site } = pesquisaPayload;
+      const pesquisaJson = JSON.stringify(compactObject({ nome, cnpj, cidade, site }));
+      const msg = `Vou pesquisar o perfil da empresa **${nome}** para personalizar a proposta.\n\n\`\`\`pesquisa_cliente\n${pesquisaJson}\n\`\`\`\n\nAssim que a pesquisa terminar, usarei os dados encontrados para criar uma proposta personalizada com linguagem e argumentos sob medida.`;
+      return streamTextAsSse(msg);
     }
 
     // Step 3: Stream final response with tool results injected into context

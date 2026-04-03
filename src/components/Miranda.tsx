@@ -8,6 +8,7 @@ import { MirandaMarkdown } from "./MirandaMarkdown";
 import { MirandaChart, parseMessageWithCharts } from "./MirandaChart";
 import { DownloadCard } from "./miranda/DownloadCard";
 import { PdfGeneratorCard } from "./miranda/PdfGeneratorCard";
+import { PesquisaClienteCard } from "./miranda/PesquisaClienteCard";
 import { ScrollArea } from "./ui/scroll-area";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -388,6 +389,8 @@ export function MirandaPanel({
                           <DownloadCard key={si} filename={segment.data.filename} size={segment.data.size} url={segment.data.url} />
                         ) : segment.type === "generate_pdf" ? (
                           <PdfGeneratorCard key={si} data={segment.data} />
+                        ) : segment.type === "pesquisa_cliente" ? (
+                          <PesquisaClienteCard key={si} data={segment.data} />
                         ) : (
                           <MirandaMarkdown key={si} content={segment.content} />
                         )
