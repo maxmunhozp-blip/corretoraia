@@ -98,6 +98,69 @@ export function UploadPastaModal({ open, onOpenChange }: Props) {
   const uploadFile = useUploadConhecimento();
   const processar = useProcessarConhecimento();
 
+  // Confetti celebration animation
+  useEffect(() => {
+    if (!showCelebration || !celebrationCanvasRef.current) return;
+    const canvas = celebrationCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.parentElement?.getBoundingClientRect();
+    canvas.width = rect?.width || 500;
+    canvas.height = rect?.height || 400;
+
+    const colors = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#a855f7", "#06b6d4", "#ec4899"];
+    const particles: { x: number; y: number; vx: number; vy: number; r: number; color: string; rot: number; rv: number; shape: number; opacity: number }[] = [];
+
+    for (let i = 0; i < 120; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 100,
+        y: canvas.height * 0.6,
+        vx: (Math.random() - 0.5) * 14,
+        vy: -Math.random() * 10 - 4,
+        r: Math.random() * 5 + 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * Math.PI * 2,
+        rv: (Math.random() - 0.5) * 0.3,
+        shape: Math.floor(Math.random() * 3),
+        opacity: 1,
+      });
+    }
+
+    let frame: number;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.18;
+        p.vx *= 0.99;
+        p.rot += p.rv;
+        p.opacity -= 0.006;
+        if (p.opacity <= 0) continue;
+        alive = true;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.globalAlpha = p.opacity;
+        ctx.fillStyle = p.color;
+        if (p.shape === 0) {
+          ctx.fillRect(-p.r / 2, -p.r, p.r, p.r * 2);
+        } else if (p.shape === 1) {
+          ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill();
+        } else {
+          ctx.beginPath(); ctx.moveTo(0, -p.r); ctx.lineTo(p.r, p.r); ctx.lineTo(-p.r, p.r); ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+      }
+      if (alive) frame = requestAnimationFrame(animate);
+      else setShowCelebration(false);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [showCelebration]);
+
   const scanAndCategorize = async (fileList: FileList) => {
     setScanning(true);
     setStep("review");
