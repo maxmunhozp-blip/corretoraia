@@ -42,6 +42,7 @@ const App = () => (
         <AuthProvider>
           <ImpersonationProvider>
             <Routes>
+              <Route path="/landing" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
