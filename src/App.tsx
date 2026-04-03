@@ -18,6 +18,7 @@ import Acessos from "./pages/Acessos";
 import Desenvolvimento from "./pages/Desenvolvimento";
 import Configuracoes from "./pages/Configuracoes";
 import Gestao from "./pages/Gestao";
+import MirandaPage from "./pages/MirandaPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/desenvolvimento" element={<Desenvolvimento />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/gestao" element={<Gestao />} />
+              <Route path="/miranda" element={<MirandaPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

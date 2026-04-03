@@ -11,6 +11,7 @@ import {
   Settings,
   Building2,
   LogOut,
+  Sparkles,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +26,7 @@ const navItems = [
   { title: "Acessos", url: "/acessos", icon: Lock },
   { title: "Desenvolvimento", url: "/desenvolvimento", icon: Code2 },
   { title: "Gestão", url: "/gestao", icon: Building2 },
+  { title: "Miranda IA", url: "/miranda", icon: Sparkles },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
