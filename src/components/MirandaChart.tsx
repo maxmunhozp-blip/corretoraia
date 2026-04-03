@@ -135,7 +135,7 @@ export type MessageSegment =
 
 export function parseMessageWithCharts(content: string): MessageSegment[] {
   const segments: MessageSegment[] = [];
-  const regex = /```(chart|download|generate_pdf)\s*\n?([\s\S]*?)```/g;
+  const regex = /```(chart|download|generate_pdf|pesquisa_cliente)\s*\n?([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
 
