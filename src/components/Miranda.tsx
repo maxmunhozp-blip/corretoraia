@@ -450,13 +450,18 @@ export function MirandaPanel({
         </div>
 
         {/* Input */}
-        <div className="border-t border-border bg-card px-4 py-3 flex items-center gap-2">
-          <input
+        <div className="border-t border-border bg-card px-4 py-3 flex items-end gap-2">
+          <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+            }}
             onKeyDown={handleKey}
             placeholder="Pergunte para a Miranda..."
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+            rows={1}
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none max-h-[120px] leading-5 py-1.5"
           />
           <button
             onClick={() => send(input)}
