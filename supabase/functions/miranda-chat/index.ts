@@ -479,7 +479,10 @@ const tools = [
 ];
 
 // Tool implementations
-async function executeTool(name: string, args: any, supabase: any, messages: { role: string; content: string }[] = []): Promise<string> {
+async function executeTool(name: string, args: any, supabase: any, messages: { role: string; content: string }[] = [], extra?: { corretoraId?: string | null; corretoraData?: Record<string, any> | null; usuario_id?: string }): Promise<string> {
+  const corretoraId = extra?.corretoraId;
+  const corretoraData = extra?.corretoraData;
+  const usuario_id = extra?.usuario_id;
   try {
     switch (name) {
       case "buscar_cliente": {
