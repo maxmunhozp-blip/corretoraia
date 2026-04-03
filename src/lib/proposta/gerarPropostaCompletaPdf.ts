@@ -24,7 +24,7 @@ function fmtCurrency(v?: number): string {
 }
 
 function drawHeader(doc: jsPDF, corretora: CorretoraInfo) {
-  doc.setFillColor(...MARSALA);
+  doc.setFillColor(...P.primary);
   doc.rect(0, 0, PAGE_W, 14, "F");
   doc.setTextColor(...WHITE);
   doc.setFont("helvetica", "bold");
@@ -34,15 +34,15 @@ function drawHeader(doc: jsPDF, corretora: CorretoraInfo) {
   doc.setFontSize(8);
   const mesAno = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   doc.text(`Proposta Comercial • ${mesAno}`, PAGE_W - M, 9, { align: "right" });
-  doc.setFillColor(...CREAM);
+  doc.setFillColor(...P.cream);
   doc.rect(0, 14, PAGE_W, 1, "F");
 }
 
 function drawFooter(doc: jsPDF, corretora: CorretoraInfo, page: number, total: number) {
   const y = PAGE_H - 8;
-  doc.setDrawColor(...MARSALA);
+  doc.setDrawColor(...P.primary);
   doc.line(M, y - 3, PAGE_W - M, y - 3);
-  doc.setTextColor(...TEXT_MUTED);
+  doc.setTextColor(...P.textMuted);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.text(corretora.nome || "", M, y);
@@ -52,11 +52,11 @@ function drawFooter(doc: jsPDF, corretora: CorretoraInfo, page: number, total: n
 }
 
 function drawSectionTitle(doc: jsPDF, title: string, y: number): number {
-  doc.setTextColor(...TEXT_DARK);
+  doc.setTextColor(...P.textDark);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.text(title, M, y);
-  doc.setFillColor(...MARSALA);
+  doc.setFillColor(...P.primary);
   doc.rect(M, y + 2, 20, 1, "F");
   return y + 10;
 }
@@ -65,29 +65,29 @@ function drawCoverPage(doc: jsPDF, data: PropostaCompleta) {
   const p = data.personalizacao;
 
   // Background
-  doc.setFillColor(...SURFACE);
+  doc.setFillColor(...P.surface);
   doc.rect(0, 0, PAGE_W, PAGE_H * 0.6, "F");
-  doc.setFillColor(...MARSALA);
+  doc.setFillColor(...P.primary);
   doc.rect(0, PAGE_H * 0.6, PAGE_W, PAGE_H * 0.4, "F");
 
   // Logo/Name
-  doc.setTextColor(...MARSALA);
+  doc.setTextColor(...P.primary);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.text(data.corretora.nome || "CORA", PAGE_W / 2, 50, { align: "center" });
 
   // Decorative line
-  doc.setFillColor(...MARSALA);
+  doc.setFillColor(...P.primary);
   doc.rect(PAGE_W / 2 - 10, 56, 20, 1, "F");
 
   // Title
-  doc.setTextColor(...TEXT_DARK);
+  doc.setTextColor(...P.textDark);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(28);
   doc.text("Proposta de Plano de Saúde", PAGE_W / 2, 80, { align: "center" });
 
   // Personalized subtitle or default
-  doc.setTextColor(...TEXT_MUTED);
+  doc.setTextColor(...P.textMuted);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
   const subtitulo = p?.frase_abertura_capa || `Preparada exclusivamente para ${data.cliente_nome}`;
@@ -132,7 +132,7 @@ function drawQuemSomosPage(doc: jsPDF, data: PropostaCompleta) {
   drawHeader(doc, data.corretora);
   let y = drawSectionTitle(doc, "Quem somos", 26);
 
-  doc.setTextColor(...TEXT_BODY);
+  doc.setTextColor(...P.textBody);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   const defaultText = `A ${data.corretora.nome || "nossa corretora"} é uma empresa especializada em facilitar sua vida na hora de escolher um plano de saúde. Trabalhamos para que você tenha um plano de qualidade, com preço justo, que realmente cuide da sua família.`;
@@ -143,15 +143,15 @@ function drawQuemSomosPage(doc: jsPDF, data: PropostaCompleta) {
 
   // Perfil do cliente (if available)
   if (data.perfil_cliente?.setor || data.perfil_cliente?.porte) {
-    doc.setFillColor(...CREAM);
+    doc.setFillColor(...P.cream);
     doc.roundedRect(M, y, CW, 22, 2, 2, "F");
-    doc.setFillColor(...MARSALA);
+    doc.setFillColor(...P.primary);
     doc.rect(M, y, 1.2, 22, "F");
-    doc.setTextColor(...MARSALA);
+    doc.setTextColor(...P.primary);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text(`Entendemos o seu negócio`, M + 6, y + 6);
-    doc.setTextColor(...TEXT_BODY);
+    doc.setTextColor(...P.textBody);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     const perfilDesc = data.perfil_cliente.contexto_relevante
@@ -169,11 +169,11 @@ function drawQuemSomosPage(doc: jsPDF, data: PropostaCompleta) {
   const colW = CW / 3;
   difs.forEach((d, i) => {
     const x = M + i * colW;
-    doc.setTextColor(...MARSALA);
+    doc.setTextColor(...P.primary);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.text(d.title, x + colW / 2, y, { align: "center" });
-    doc.setTextColor(...TEXT_MUTED);
+    doc.setTextColor(...P.textMuted);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     const dl = doc.splitTextToSize(d.desc, colW - 4);
@@ -182,11 +182,11 @@ function drawQuemSomosPage(doc: jsPDF, data: PropostaCompleta) {
   y += 24;
 
   // Destaque — use personalized quote if available
-  doc.setFillColor(...CREAM);
+  doc.setFillColor(...P.cream);
   doc.roundedRect(M, y, CW, 18, 2, 2, "F");
-  doc.setFillColor(...MARSALA);
+  doc.setFillColor(...P.primary);
   doc.rect(M, y, 1.2, 18, "F");
-  doc.setTextColor(...TEXT_BODY);
+  doc.setTextColor(...P.textBody);
   doc.setFont("helvetica", "italic");
   doc.setFontSize(9);
   const quote = p?.argumento_chave
@@ -209,13 +209,13 @@ function drawQuemSomosPage(doc: jsPDF, data: PropostaCompleta) {
     const row = Math.floor(i / 2);
     const cx = M + col * (cardW + 6);
     const cy = y + row * 28;
-    doc.setDrawColor(...BORDER);
+    doc.setDrawColor(...P.border);
     doc.roundedRect(cx, cy, cardW, 24, 2, 2, "S");
-    doc.setTextColor(...TEXT_DARK);
+    doc.setTextColor(...P.textDark);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text(c.title, cx + 4, cy + 8);
-    doc.setTextColor(...TEXT_MUTED);
+    doc.setTextColor(...P.textMuted);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(doc.splitTextToSize(c.desc, cardW - 8), cx + 4, cy + 14);
@@ -225,7 +225,7 @@ function drawQuemSomosPage(doc: jsPDF, data: PropostaCompleta) {
 function drawTermosPage(doc: jsPDF, data: PropostaCompleta) {
   drawHeader(doc, data.corretora);
   let y = drawSectionTitle(doc, "Entendendo os termos", 26);
-  doc.setTextColor(...TEXT_MUTED);
+  doc.setTextColor(...P.textMuted);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.text("Explicamos tudo de forma simples para você decidir com confiança", M, y);
@@ -246,18 +246,18 @@ function drawTermosPage(doc: jsPDF, data: PropostaCompleta) {
       drawHeader(doc, data.corretora);
       y = 24;
     }
-    doc.setDrawColor(...BORDER);
+    doc.setDrawColor(...P.border);
     doc.roundedRect(M, y, CW, 32, 2, 2, "S");
-    doc.setTextColor(...MARSALA);
+    doc.setTextColor(...P.primary);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text(t.term, M + 4, y + 6);
-    doc.setTextColor(...TEXT_BODY);
+    doc.setTextColor(...P.textBody);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(doc.splitTextToSize(t.explain, CW - 8), M + 4, y + 12);
     doc.text(doc.splitTextToSize(t.detail, CW - 8), M + 4, y + 18);
-    doc.setTextColor(...TEXT_MUTED);
+    doc.setTextColor(...P.textMuted);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(7);
     doc.text(`Exemplo: ${t.example}`, M + 4, y + 27);
@@ -268,7 +268,7 @@ function drawTermosPage(doc: jsPDF, data: PropostaCompleta) {
 function drawComparativoPage(doc: jsPDF, data: PropostaCompleta) {
   drawHeader(doc, data.corretora);
   let y = drawSectionTitle(doc, "Comparativo entre os planos", 26);
-  doc.setTextColor(...TEXT_MUTED);
+  doc.setTextColor(...P.textMuted);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.text("Analisamos cada detalhe para que você tome a melhor decisão", M, y);
@@ -291,9 +291,9 @@ function drawComparativoPage(doc: jsPDF, data: PropostaCompleta) {
     body: rows,
     margin: { left: M, right: M },
     styles: { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: MARSALA, textColor: WHITE, fontStyle: "bold", fontSize: 7 },
+    headStyles: { fillColor: P.primary, textColor: WHITE, fontStyle: "bold", fontSize: 7 },
     alternateRowStyles: { fillColor: [248, 248, 248] },
-    columnStyles: { 0: { fillColor: CREAM, textColor: [149, 82, 81], fontStyle: "bold" } },
+    columnStyles: { 0: { fillColor: P.cream, textColor: [149, 82, 81], fontStyle: "bold" } },
   });
 
   y = (doc as any).lastAutoTable.finalY + 8;
@@ -303,11 +303,11 @@ function drawComparativoPage(doc: jsPDF, data: PropostaCompleta) {
     const rec = data.alternativas.find((a) => a.recomendado) || data.alternativas[0];
     const eco = (data.plano_atual.valor_mensal || 0) - (rec.valor_mensal || 0);
     if (eco > 0) {
-      doc.setFillColor(...CREAM);
+      doc.setFillColor(...P.cream);
       doc.roundedRect(M, y, CW, 14, 2, 2, "F");
-      doc.setFillColor(...MARSALA);
+      doc.setFillColor(...P.primary);
       doc.rect(M, y, 1.2, 14, "F");
-      doc.setTextColor(...TEXT_BODY);
+      doc.setTextColor(...P.textBody);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.text(`Migrando para ${rec.nome}, você economiza ${fmtCurrency(eco)}/mês — ${fmtCurrency(eco * 12)}/ano.`, M + 6, y + 8);
@@ -327,17 +327,17 @@ function drawDetalhesPage(doc: jsPDF, data: PropostaCompleta) {
     }
 
     // Plano header
-    doc.setFillColor(...CREAM);
+    doc.setFillColor(...P.cream);
     doc.roundedRect(M, y, CW, 22, 2, 2, "F");
-    doc.setTextColor(...MARSALA);
+    doc.setTextColor(...P.primary);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.text(plano.nome, M + 4, y + 8);
-    doc.setTextColor(...TEXT_MUTED);
+    doc.setTextColor(...P.textMuted);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(plano.operadora, M + 4, y + 14);
-    doc.setTextColor(...TEXT_DARK);
+    doc.setTextColor(...P.textDark);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.text(`${fmtCurrency(plano.valor_mensal)} / mês`, PAGE_W - M - 4, y + 10, { align: "right" });
@@ -362,11 +362,11 @@ function drawDetalhesPage(doc: jsPDF, data: PropostaCompleta) {
       const row = Math.floor(i / 2);
       const cx = M + col * colW2;
       const cy = y + row * 10;
-      doc.setTextColor(...TEXT_MUTED);
+      doc.setTextColor(...P.textMuted);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.text(c[0], cx, cy);
-      doc.setTextColor(...TEXT_DARK);
+      doc.setTextColor(...P.textDark);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
       doc.text(c[1], cx, cy + 5);
@@ -374,11 +374,11 @@ function drawDetalhesPage(doc: jsPDF, data: PropostaCompleta) {
     y += Math.ceil(campos.length / 2) * 10 + 8;
 
     if (plano.descricao) {
-      doc.setFillColor(...CREAM);
+      doc.setFillColor(...P.cream);
       doc.roundedRect(M, y, CW, 20, 2, 2, "F");
-      doc.setFillColor(...MARSALA);
+      doc.setFillColor(...P.primary);
       doc.rect(M, y, 1.2, 20, "F");
-      doc.setTextColor(...TEXT_BODY);
+      doc.setTextColor(...P.textBody);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.text(doc.splitTextToSize(plano.descricao, CW - 10), M + 6, y + 6);
@@ -395,7 +395,7 @@ function drawRedeCredenciadaPage(doc: jsPDF, data: PropostaCompleta) {
   let y = drawSectionTitle(doc, "Rede credenciada", 26);
 
   planosComHospitais.forEach((plano) => {
-    doc.setTextColor(...TEXT_DARK);
+    doc.setTextColor(...P.textDark);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.text(`${plano.operadora} — Hospitais Credenciados`, M, y);
@@ -410,7 +410,7 @@ function drawRedeCredenciadaPage(doc: jsPDF, data: PropostaCompleta) {
       body,
       margin: { left: M, right: M },
       styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: CREAM as any, textColor: MARSALA, fontStyle: "bold", fontSize: 7 },
+      headStyles: { fillColor: P.cream as any, textColor: P.primary, fontStyle: "bold", fontSize: 7 },
       alternateRowStyles: { fillColor: [248, 248, 248] },
     });
     y = (doc as any).lastAutoTable.finalY + 10;
@@ -430,16 +430,16 @@ function drawProximosPassosPage(doc: jsPDF, data: PropostaCompleta) {
   ];
 
   passos.forEach((p, i) => {
-    doc.setFillColor(...MARSALA);
+    doc.setFillColor(...P.primary);
     doc.circle(M + 5, y + 4, 5, "F");
     doc.setTextColor(...WHITE);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.text(String(i + 1), M + 5, y + 5.5, { align: "center" });
-    doc.setTextColor(...TEXT_DARK);
+    doc.setTextColor(...P.textDark);
     doc.setFontSize(10);
     doc.text(p.title, M + 14, y + 3);
-    doc.setTextColor(...TEXT_MUTED);
+    doc.setTextColor(...P.textMuted);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(p.desc, M + 14, y + 9);
@@ -450,13 +450,13 @@ function drawProximosPassosPage(doc: jsPDF, data: PropostaCompleta) {
   if (data.valida_ate) {
     const dataVal = new Date(data.valida_ate).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
     y += 4;
-    doc.setFillColor(...CREAM);
+    doc.setFillColor(...P.cream);
     doc.roundedRect(M, y, CW, 16, 2, 2, "F");
-    doc.setTextColor(...TEXT_DARK);
+    doc.setTextColor(...P.textDark);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text(`Esta proposta é válida até ${dataVal}`, M + 6, y + 7);
-    doc.setTextColor(...TEXT_MUTED);
+    doc.setTextColor(...P.textMuted);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.text("Após essa data, os valores podem ser reajustados pela operadora.", M + 6, y + 12);
@@ -465,7 +465,7 @@ function drawProximosPassosPage(doc: jsPDF, data: PropostaCompleta) {
 
   // CTA
   y += 4;
-  doc.setFillColor(...MARSALA);
+  doc.setFillColor(...P.primary);
   doc.roundedRect(M, y, CW, 36, 4, 4, "F");
   doc.setTextColor(...WHITE);
   doc.setFont("helvetica", "bold");
@@ -480,17 +480,17 @@ function drawProximosPassosPage(doc: jsPDF, data: PropostaCompleta) {
 
   // Encerramento
   y += 54;
-  doc.setTextColor(...MARSALA);
+  doc.setTextColor(...P.primary);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.text(data.corretora.nome || "CORA", PAGE_W / 2, y, { align: "center" });
-  doc.setTextColor(...TEXT_DARK);
+  doc.setTextColor(...P.textDark);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   doc.text("Obrigado pela confiança.", PAGE_W / 2, y + 10, { align: "center" });
-  doc.setFillColor(...MARSALA);
+  doc.setFillColor(...P.primary);
   doc.rect(PAGE_W / 2 - 8, y + 14, 16, 0.8, "F");
-  doc.setTextColor(...TEXT_MUTED);
+  doc.setTextColor(...P.textMuted);
   doc.setFontSize(8);
   let contactY = y + 22;
   [data.corretora.telefone, data.corretora.email, data.corretora.site].filter(Boolean).forEach((c) => {
