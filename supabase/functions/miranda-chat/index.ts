@@ -391,6 +391,30 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "salvar_memoria",
+      description: "Salva uma nova memória/aprendizado da Miranda. Use quando o usuário der feedback positivo ou negativo sobre algo (design, tom, layout, etc), quando aprender uma preferência da corretora, ou quando quiser registrar algo para lembrar depois.",
+      parameters: {
+        type: "object",
+        properties: {
+          tipo: { type: "string", description: "Tipo: preferencia_design, feedback_positivo, feedback_negativo, cor, tipografia, layout, tom_escrita, geral" },
+          titulo: { type: "string", description: "Título curto da memória (ex: 'Prefere tabelas sem borda')" },
+          conteudo: { type: "string", description: "Descrição detalhada da memória" },
+        },
+        required: ["tipo", "titulo", "conteudo"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ler_memoria",
+      description: "Lê todas as memórias e skills da Miranda para a corretora atual. Use para consultar preferências de design, tom de escrita, feedbacks anteriores.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
 ];
 
 // Tool implementations
@@ -872,6 +896,33 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
       }
 
 
+      case "salvar_memoria": {
+        const { tipo, titulo, conteudo } = args;
+        // We need corretoraId from the calling context — pass via extra args
+        const { error } = await supabase
+          .from("miranda_memoria")
+          .insert({ tipo, titulo, conteudo });
+        if (error) return JSON.stringify({ erro: error.message });
+        return JSON.stringify({ sucesso: true, mensagem: `Memória "${titulo}" salva com sucesso` });
+      }
+
+      case "ler_memoria": {
+        const [{ data: skills }, { data: memorias }] = await Promise.all([
+          supabase.from("miranda_skills").select("nome, conteudo_md").eq("ativo", true).limit(10),
+          supabase.from("miranda_memoria").select("tipo, titulo, conteudo").eq("ativo", true).order("criado_em", { ascending: false }).limit(30),
+        ]);
+
+        let md = "";
+        if (skills?.length) {
+          for (const s of skills) md += `## Skill: ${s.nome}\n${s.conteudo_md}\n\n`;
+        }
+        if (memorias?.length) {
+          md += "## Memórias\n";
+          for (const m of memorias) md += `- [${m.tipo}] **${m.titulo}**: ${m.conteudo}\n`;
+        }
+        return JSON.stringify({ memoria: md || "Nenhuma memória registrada ainda." });
+      }
+
       default:
         return JSON.stringify({ erro: `Tool "${name}" não implementada` });
     }
@@ -891,25 +942,64 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Fetch user profile and quick context
+    // Fetch user profile, context counts, and memory in parallel
     let userName = "Usuário";
     let userCargo = "";
-    if (usuario_id) {
-      const { data: profile } = await supabase.from("profiles").select("nome, cargo, role").eq("id", usuario_id).single();
-      if (profile) {
-        userName = profile.nome;
-        userCargo = profile.cargo || "";
-      }
+    let corretoraId: string | null = null;
+    let memoriaContexto = "";
+
+    const profilePromise = usuario_id
+      ? supabase.from("profiles").select("nome, cargo, role, corretora_id").eq("id", usuario_id).single()
+      : Promise.resolve({ data: null });
+    const propostasPromise = supabase.from("propostas").select("*", { count: "exact", head: true }).not("status", "in", '("cancelada","aprovada")');
+    const alertasPromise = supabase.from("alertas").select("*", { count: "exact", head: true }).eq("resolvido", false);
+
+    const [profileResult, { count: propostasAtivas }, { count: alertasNaoResolvidos }] = await Promise.all([
+      profilePromise,
+      propostasPromise,
+      alertasPromise,
+    ]);
+
+    if (profileResult.data) {
+      userName = profileResult.data.nome;
+      userCargo = profileResult.data.cargo || "";
+      corretoraId = profileResult.data.corretora_id;
     }
 
-    // Quick context counts
-    const [
-      { count: propostasAtivas },
-      { count: alertasNaoResolvidos },
-    ] = await Promise.all([
-      supabase.from("propostas").select("*", { count: "exact", head: true }).not("status", "in", '("cancelada","aprovada")'),
-      supabase.from("alertas").select("*", { count: "exact", head: true }).eq("resolvido", false),
-    ]);
+    // Load memory (skills + memorias)
+    try {
+      const [{ data: skills }, { data: memorias }] = await Promise.all([
+        supabase
+          .from("miranda_skills")
+          .select("nome, conteudo_md")
+          .eq("ativo", true)
+          .or(corretoraId ? `corretora_id.eq.${corretoraId},corretora_id.is.null` : "corretora_id.is.null"),
+        supabase
+          .from("miranda_memoria")
+          .select("tipo, titulo, conteudo")
+          .eq("ativo", true)
+          .or(corretoraId ? `corretora_id.eq.${corretoraId},corretora_id.is.null` : "corretora_id.is.null")
+          .order("criado_em", { ascending: false })
+          .limit(30),
+      ]);
+
+      if (skills?.length || memorias?.length) {
+        memoriaContexto = "\n\n--- MEMÓRIA DA MIRANDA ---\n";
+        if (skills?.length) {
+          for (const s of skills) {
+            memoriaContexto += `\n## Skill: ${s.nome}\n${s.conteudo_md}\n`;
+          }
+        }
+        if (memorias?.length) {
+          memoriaContexto += "\n## Memórias aprendidas\n";
+          for (const m of memorias) {
+            memoriaContexto += `- [${m.tipo}] **${m.titulo}**: ${m.conteudo}\n`;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error loading memory:", e);
+    }
 
     const now = new Date();
     const systemPrompt = `Você é a Miranda, assistente de inteligência artificial da Cora — plataforma para corretoras de planos de saúde.
@@ -984,6 +1074,15 @@ Regras para pesquisa de perfil:
 - SEMPRE inclua o bloco pesquisa_cliente quando receber dados com __pesquisa_cliente
 - Antes do bloco, diga algo como "Vou pesquisar o perfil da empresa para personalizar a proposta..."
 - Depois do bloco, explique brevemente o que será feito com os dados encontrados
+
+MEMÓRIA E APRENDIZADO:
+- Você tem acesso a memórias persistentes e skills que definem suas preferências de design, tom de escrita e feedbacks anteriores
+- SEMPRE consulte sua memória (já carregada no contexto abaixo) antes de gerar propostas, PDFs ou layouts
+- Quando o usuário elogiar ou criticar algo que você fez, use a tool salvar_memoria para registrar
+- Tipos de memória: preferencia_design, feedback_positivo, feedback_negativo, cor, tipografia, layout, tom_escrita, geral
+- Exemplo: se o usuário disser "ficou ótimo esse layout", salve como feedback_positivo
+- Exemplo: se disser "não gostei da cor", salve como feedback_negativo
+${memoriaContexto}
 
 --- CONTEXTO ATUAL ---
 Data e hora: ${now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
