@@ -475,28 +475,30 @@ export default function MirandaPage() {
                     {formatDistanceToNow(new Date(c.updated_at || c.created_at), { addSuffix: true, locale: ptBR })}
                   </p>
                 </div>
-                {hoveredConversa === c.id && editingConversa !== c.id && (
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingConversa(c.id);
-                        setEditingTitulo(c.titulo);
-                      }}
-                      className="p-1 rounded hover:bg-muted transition-colors"
-                      title="Renomear"
-                    >
-                      <Pencil className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(c.id); }}
-                      className="p-1 rounded hover:bg-destructive/10 transition-colors"
-                      title="Deletar"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {editingConversa !== c.id && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingConversa(c.id);
+                          setEditingTitulo(c.titulo);
+                        }}
+                        className="p-1 rounded hover:bg-muted transition-colors"
+                        title="Renomear"
+                      >
+                        <Pencil className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(c.id); }}
+                        className="p-1 rounded hover:bg-destructive/10 transition-colors"
+                        title="Deletar"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" style={{ color: "#71717A" }} />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
             {conversas.length === 0 && (
