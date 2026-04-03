@@ -6,114 +6,648 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const tools = [
+  {
+    type: "function",
+    function: {
+      name: "buscar_cliente",
+      description: "Busca dados completos de um cliente incluindo propostas ativas, alertas e histórico",
+      parameters: {
+        type: "object",
+        properties: {
+          nome: { type: "string", description: "Nome do cliente para buscar" },
+          incluir_propostas: { type: "boolean", description: "Incluir propostas do cliente" },
+          incluir_alertas: { type: "boolean", description: "Incluir alertas do cliente" },
+        },
+        required: ["nome"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "buscar_propostas",
+      description: "Lista propostas com filtros. Use para relatórios e análises comerciais",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filtrar por status: enviada, em_analise, aprovada, cancelada, pendencia" },
+          responsavel_nome: { type: "string", description: "Nome do responsável" },
+          operadora: { type: "string", description: "Nome da operadora" },
+          periodo_dias: { type: "number", description: "Propostas dos últimos N dias" },
+          limit: { type: "number", description: "Número máximo de resultados" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "buscar_alertas",
+      description: "Retorna alertas ativos do sistema por nível e tipo",
+      parameters: {
+        type: "object",
+        properties: {
+          nivel: { type: "string", description: "Filtrar por nível: alto, medio, baixo" },
+          tipo: { type: "string", description: "Filtrar por tipo: inadimplencia, cancelamento, renovacao, etc" },
+          resolvido: { type: "boolean", description: "Filtrar por status de resolução" },
+          limit: { type: "number", description: "Número máximo de resultados" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "buscar_conhecimento",
+      description: "Pesquisa na base de conhecimento indexada — use para responder dúvidas sobre regras, coberturas, carências e tabelas das operadoras",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Termo de busca" },
+          operadora: { type: "string", description: "Filtrar por operadora" },
+          categoria: { type: "string", description: "Filtrar por categoria: regras_comerciais, tabela_preco, rede_credenciada, manual" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "buscar_metricas",
+      description: "Retorna KPIs e métricas da empresa em tempo real",
+      parameters: {
+        type: "object",
+        properties: {
+          periodo: { type: "string", description: "Período: mes_atual, semana, trimestre, ano" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "buscar_ranking",
+      description: "Retorna performance detalhada dos vendedores",
+      parameters: {
+        type: "object",
+        properties: {
+          periodo_dias: { type: "number", description: "Período em dias para calcular" },
+          limit: { type: "number", description: "Número de vendedores" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "buscar_conversas",
+      description: "Busca histórico de conversas e interações com um cliente específico",
+      parameters: {
+        type: "object",
+        properties: {
+          cliente_nome: { type: "string", description: "Nome do cliente" },
+        },
+        required: ["cliente_nome"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "atualizar_proposta",
+      description: "Atualiza o status de uma proposta. Use quando o usuário pedir explicitamente",
+      parameters: {
+        type: "object",
+        properties: {
+          proposta_id: { type: "string", description: "ID da proposta" },
+          novo_status: { type: "string", description: "Novo status: enviada, em_analise, aprovada, cancelada, pendencia" },
+          observacao: { type: "string", description: "Observação sobre a atualização" },
+        },
+        required: ["proposta_id", "novo_status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "criar_alerta",
+      description: "Registra um novo alerta no sistema",
+      parameters: {
+        type: "object",
+        properties: {
+          tipo: { type: "string", description: "Tipo do alerta: inadimplencia, cancelamento, renovacao, vencimento" },
+          nivel: { type: "string", description: "Nível: alto, medio, baixo" },
+          titulo: { type: "string", description: "Título do alerta" },
+          descricao: { type: "string", description: "Descrição detalhada" },
+          cliente_nome: { type: "string", description: "Nome do cliente relacionado (opcional)" },
+        },
+        required: ["tipo", "nivel", "titulo", "descricao"],
+      },
+    },
+  },
+];
+
+// Tool implementations
+async function executeTool(name: string, args: any, supabase: any): Promise<string> {
+  try {
+    switch (name) {
+      case "buscar_cliente": {
+        const { nome, incluir_propostas = true, incluir_alertas = true } = args;
+        const { data: clientes } = await supabase
+          .from("clientes")
+          .select("*, operadoras(nome)")
+          .ilike("nome", `%${nome}%`)
+          .limit(5);
+
+        if (!clientes?.length) return JSON.stringify({ resultado: "Nenhum cliente encontrado com esse nome" });
+
+        const result: any = { clientes };
+
+        if (incluir_propostas) {
+          const nomes = clientes.map((c: any) => c.nome);
+          const { data: propostas } = await supabase
+            .from("propostas")
+            .select("*, operadoras(nome)")
+            .in("cliente_nome", nomes)
+            .order("created_at", { ascending: false })
+            .limit(10);
+          result.propostas = propostas || [];
+        }
+
+        if (incluir_alertas) {
+          const ids = clientes.map((c: any) => c.id);
+          const { data: alertas } = await supabase
+            .from("alertas")
+            .select("*")
+            .in("cliente_id", ids)
+            .eq("resolvido", false)
+            .limit(10);
+          result.alertas = alertas || [];
+        }
+
+        return JSON.stringify(result);
+      }
+
+      case "buscar_propostas": {
+        const { status, responsavel_nome, operadora, periodo_dias, limit = 20 } = args;
+        let q = supabase
+          .from("propostas")
+          .select("*, operadoras(nome), profiles!propostas_responsavel_id_fkey(nome)")
+          .order("created_at", { ascending: false })
+          .limit(limit);
+
+        if (status) q = q.eq("status", status);
+        if (periodo_dias) {
+          const since = new Date();
+          since.setDate(since.getDate() - periodo_dias);
+          q = q.gte("created_at", since.toISOString());
+        }
+
+        const { data: propostas } = await q;
+
+        // Filter by responsavel name or operadora name in JS (joined fields)
+        let filtered = propostas || [];
+        if (responsavel_nome) {
+          filtered = filtered.filter((p: any) =>
+            p.profiles?.nome?.toLowerCase().includes(responsavel_nome.toLowerCase())
+          );
+        }
+        if (operadora) {
+          filtered = filtered.filter((p: any) =>
+            p.operadoras?.nome?.toLowerCase().includes(operadora.toLowerCase())
+          );
+        }
+
+        return JSON.stringify({
+          total: filtered.length,
+          propostas: filtered.map((p: any) => ({
+            id: p.id,
+            cliente: p.cliente_nome,
+            empresa: p.empresa,
+            status: p.status,
+            valor: p.valor_estimado,
+            vidas: p.vidas,
+            operadora: p.operadoras?.nome,
+            responsavel: p.profiles?.nome,
+            data: p.created_at,
+          })),
+        });
+      }
+
+      case "buscar_alertas": {
+        const { nivel, tipo, resolvido = false, limit = 20 } = args;
+        let q = supabase
+          .from("alertas")
+          .select("*, clientes(nome)")
+          .eq("resolvido", resolvido)
+          .order("created_at", { ascending: false })
+          .limit(limit);
+
+        if (nivel) q = q.eq("nivel", nivel);
+        if (tipo) q = q.eq("tipo", tipo);
+
+        const { data } = await q;
+        return JSON.stringify({
+          total: data?.length || 0,
+          alertas: (data || []).map((a: any) => ({
+            id: a.id,
+            titulo: a.titulo,
+            descricao: a.descricao,
+            tipo: a.tipo,
+            nivel: a.nivel,
+            cliente: a.clientes?.nome,
+            data: a.created_at,
+          })),
+        });
+      }
+
+      case "buscar_conhecimento": {
+        const { query, operadora, categoria } = args;
+        const keywords = query.split(/\s+/).filter((w: string) => w.length > 2).slice(0, 5);
+        if (!keywords.length) return JSON.stringify({ resultado: "Termo de busca muito curto" });
+
+        let q = supabase
+          .from("base_conhecimento")
+          .select("titulo, conteudo_extraido, categoria, fonte_url, operadoras:operadora_id(nome)")
+          .eq("status", "indexado")
+          .limit(3);
+
+        const orFilters = keywords.map((k: string) => `conteudo_extraido.ilike.%${k}%`);
+        q = q.or(orFilters.join(","));
+        if (categoria) q = q.eq("categoria", categoria);
+
+        const { data } = await q;
+
+        // Filter by operadora name in JS
+        let filtered = data || [];
+        if (operadora) {
+          filtered = filtered.filter((d: any) =>
+            d.operadoras?.nome?.toLowerCase().includes(operadora.toLowerCase())
+          );
+        }
+
+        if (!filtered.length) return JSON.stringify({ resultado: "Nenhum documento encontrado na base de conhecimento para essa busca" });
+
+        return JSON.stringify({
+          documentos: filtered.map((d: any) => ({
+            titulo: d.titulo,
+            categoria: d.categoria,
+            operadora: d.operadoras?.nome,
+            fonte: d.fonte_url,
+            conteudo: (d.conteudo_extraido || "").slice(0, 3000),
+          })),
+        });
+      }
+
+      case "buscar_metricas": {
+        const { periodo = "mes_atual" } = args;
+        const now = new Date();
+        let since: Date;
+        switch (periodo) {
+          case "semana": since = new Date(now.getTime() - 7 * 86400000); break;
+          case "trimestre": since = new Date(now.getFullYear(), now.getMonth() - 3, 1); break;
+          case "ano": since = new Date(now.getFullYear(), 0, 1); break;
+          default: since = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+
+        const [
+          { data: allPropostas },
+          { data: alertasAtivos },
+        ] = await Promise.all([
+          supabase.from("propostas").select("status, valor_estimado, responsavel_id").gte("created_at", since.toISOString()),
+          supabase.from("alertas").select("nivel").eq("resolvido", false),
+        ]);
+
+        const props = allPropostas || [];
+        const aprovadas = props.filter((p: any) => p.status === "aprovada");
+        const total = props.length;
+
+        // Top vendedores
+        const vendedorMap: Record<string, { count: number; valor: number }> = {};
+        for (const p of aprovadas) {
+          if (p.responsavel_id) {
+            if (!vendedorMap[p.responsavel_id]) vendedorMap[p.responsavel_id] = { count: 0, valor: 0 };
+            vendedorMap[p.responsavel_id].count++;
+            vendedorMap[p.responsavel_id].valor += Number(p.valor_estimado || 0);
+          }
+        }
+        const topIds = Object.entries(vendedorMap).sort((a, b) => b[1].valor - a[1].valor).slice(0, 3);
+        let topVendedores: any[] = [];
+        if (topIds.length) {
+          const { data: profiles } = await supabase.from("profiles").select("id, nome").in("id", topIds.map(t => t[0]));
+          topVendedores = topIds.map(([id, stats]) => ({
+            nome: profiles?.find((p: any) => p.id === id)?.nome || "Desconhecido",
+            vendas: stats.count,
+            valor_total: stats.valor,
+          }));
+        }
+
+        const alertas = alertasAtivos || [];
+        return JSON.stringify({
+          periodo,
+          propostas_total: total,
+          propostas_aprovadas: aprovadas.length,
+          taxa_conversao: total > 0 ? Math.round((aprovadas.length / total) * 100) : 0,
+          valor_total_aprovado: aprovadas.reduce((s: number, p: any) => s + Number(p.valor_estimado || 0), 0),
+          ticket_medio: aprovadas.length > 0
+            ? Math.round(aprovadas.reduce((s: number, p: any) => s + Number(p.valor_estimado || 0), 0) / aprovadas.length)
+            : 0,
+          alertas_nao_resolvidos: {
+            total: alertas.length,
+            alto: alertas.filter((a: any) => a.nivel === "alto").length,
+            medio: alertas.filter((a: any) => a.nivel === "medio").length,
+            baixo: alertas.filter((a: any) => a.nivel === "baixo").length,
+          },
+          top_vendedores: topVendedores,
+        });
+      }
+
+      case "buscar_ranking": {
+        const { periodo_dias = 30, limit = 10 } = args;
+        const since = new Date();
+        since.setDate(since.getDate() - periodo_dias);
+
+        const { data: propostas } = await supabase
+          .from("propostas")
+          .select("responsavel_id, status, valor_estimado")
+          .gte("created_at", since.toISOString());
+
+        const map: Record<string, { total: number; aprovadas: number; valor: number }> = {};
+        for (const p of (propostas || [])) {
+          if (!p.responsavel_id) continue;
+          if (!map[p.responsavel_id]) map[p.responsavel_id] = { total: 0, aprovadas: 0, valor: 0 };
+          map[p.responsavel_id].total++;
+          if (p.status === "aprovada") {
+            map[p.responsavel_id].aprovadas++;
+            map[p.responsavel_id].valor += Number(p.valor_estimado || 0);
+          }
+        }
+
+        const sorted = Object.entries(map).sort((a, b) => b[1].valor - a[1].valor).slice(0, limit);
+        const ids = sorted.map(s => s[0]);
+        const { data: profiles } = await supabase.from("profiles").select("id, nome, cargo").in("id", ids);
+
+        return JSON.stringify({
+          periodo_dias,
+          ranking: sorted.map(([id, stats], i) => ({
+            posicao: i + 1,
+            nome: profiles?.find((p: any) => p.id === id)?.nome || "Desconhecido",
+            cargo: profiles?.find((p: any) => p.id === id)?.cargo,
+            propostas_total: stats.total,
+            propostas_aprovadas: stats.aprovadas,
+            taxa_conversao: stats.total > 0 ? Math.round((stats.aprovadas / stats.total) * 100) : 0,
+            valor_total: stats.valor,
+          })),
+        });
+      }
+
+      case "buscar_conversas": {
+        const { cliente_nome } = args;
+        const { data: atividades } = await supabase
+          .from("atividades")
+          .select("*, profiles:autor_id(nome)")
+          .or(`descricao.ilike.%${cliente_nome}%,entidade_tipo.eq.cliente`)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        return JSON.stringify({
+          total: atividades?.length || 0,
+          atividades: (atividades || []).map((a: any) => ({
+            tipo: a.tipo,
+            descricao: a.descricao,
+            autor: a.profiles?.nome,
+            data: a.created_at,
+          })),
+        });
+      }
+
+      case "atualizar_proposta": {
+        const { proposta_id, novo_status, observacao } = args;
+        const { error } = await supabase
+          .from("propostas")
+          .update({ status: novo_status, observacoes: observacao || null })
+          .eq("id", proposta_id);
+
+        if (error) return JSON.stringify({ erro: error.message });
+
+        // Log activity
+        await supabase.from("atividades").insert({
+          tipo: "status_alterado",
+          descricao: `Status da proposta alterado para "${novo_status}" pela Miranda${observacao ? `: ${observacao}` : ""}`,
+          entidade_id: proposta_id,
+          entidade_tipo: "proposta",
+        });
+
+        return JSON.stringify({ sucesso: true, mensagem: `Proposta atualizada para "${novo_status}"` });
+      }
+
+      case "criar_alerta": {
+        const { tipo, nivel, titulo, descricao, cliente_nome } = args;
+        let cliente_id = null;
+        if (cliente_nome) {
+          const { data } = await supabase
+            .from("clientes")
+            .select("id")
+            .ilike("nome", `%${cliente_nome}%`)
+            .limit(1)
+            .single();
+          cliente_id = data?.id || null;
+        }
+
+        const { error } = await supabase.from("alertas").insert({
+          tipo,
+          nivel,
+          titulo,
+          descricao,
+          cliente_id,
+        });
+
+        if (error) return JSON.stringify({ erro: error.message });
+        return JSON.stringify({ sucesso: true, mensagem: `Alerta "${titulo}" criado com sucesso` });
+      }
+
+      default:
+        return JSON.stringify({ erro: `Tool "${name}" não implementada` });
+    }
+  } catch (e) {
+    console.error(`Tool ${name} error:`, e);
+    return JSON.stringify({ erro: `Erro ao executar ${name}: ${e instanceof Error ? e.message : "desconhecido"}` });
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, usuario_id, contexto_pagina } = await req.json();
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get the last user message to search knowledge base
-    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
-
-    // Search knowledge base for relevant content
-    let knowledgeContext = "";
-    if (lastUserMsg.length > 3) {
-      const keywords = lastUserMsg.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 5);
-      const searchTerms = keywords.map((k: string) => `conteudo_extraido.ilike.%${k}%`);
-
-      const { data: docs } = await supabase
-        .from("base_conhecimento")
-        .select("titulo, conteudo_extraido, categoria, fonte_url")
-        .eq("status", "indexado")
-        .or(searchTerms.join(","))
-        .limit(3);
-
-      if (docs && docs.length > 0) {
-        knowledgeContext = "\n\n--- BASE DE CONHECIMENTO ---\n" +
-          docs.map((d: any) => `📄 Documento: ${d.titulo}\nCategoria: ${d.categoria}\n${d.fonte_url ? `Fonte: ${d.fonte_url}\n` : ""}Conteúdo:\n${(d.conteudo_extraido || "").slice(0, 2000)}`).join("\n\n---\n\n");
+    // Fetch user profile and quick context
+    let userName = "Usuário";
+    let userCargo = "";
+    if (usuario_id) {
+      const { data: profile } = await supabase.from("profiles").select("nome, cargo, role").eq("id", usuario_id).single();
+      if (profile) {
+        userName = profile.nome;
+        userCargo = profile.cargo || "";
       }
     }
 
-    // Also fetch some operational data for context
+    // Quick context counts
     const [
       { count: propostasAtivas },
-      { count: propostasPendentes },
-      { data: alertasAtivos },
-      { data: clientesRecentes },
+      { count: alertasNaoResolvidos },
     ] = await Promise.all([
       supabase.from("propostas").select("*", { count: "exact", head: true }).not("status", "in", '("cancelada","aprovada")'),
-      supabase.from("propostas").select("*", { count: "exact", head: true }).eq("status", "pendencia"),
-      supabase.from("alertas").select("titulo, nivel, descricao").eq("resolvido", false).limit(5),
-      supabase.from("clientes").select("nome, status, vidas").order("created_at", { ascending: false }).limit(5),
+      supabase.from("alertas").select("*", { count: "exact", head: true }).eq("resolvido", false),
     ]);
 
-    const operationalContext = `
---- DADOS OPERACIONAIS ---
+    const now = new Date();
+    const systemPrompt = `Você é a Miranda, assistente de inteligência artificial da Cora — plataforma para corretoras de planos de saúde.
+
+Você tem acesso completo aos dados da empresa e age como agente inteligente para auxiliar diretores, gerentes e corretores.
+
+Suas responsabilidades:
+- Buscar e analisar dados reais da empresa (propostas, clientes, alertas, métricas)
+- Responder dúvidas sobre regras das operadoras com base na base de conhecimento
+- Identificar riscos, oportunidades e sugerir ações concretas
+- Auxiliar em vendas respondendo dúvidas técnicas sobre planos
+- Monitorar inadimplência e cancelamentos
+- Gerar insights e relatórios sob demanda
+
+Regras de comportamento:
+- SEMPRE busque dados reais antes de responder — nunca invente números
+- Cite a fonte quando usar a base de conhecimento: "De acordo com o documento [título]..."
+- Seja direta e objetiva — os usuários são profissionais ocupados
+- Quando identificar um problema, sugira uma ação específica
+- Se não encontrar dados suficientes, diga claramente o que não conseguiu encontrar
+- Responda sempre em português brasileiro
+- Use **negrito** para destacar informações importantes
+- Use listas com marcadores quando listar itens
+
+--- CONTEXTO ATUAL ---
+Data e hora: ${now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+Usuário logado: ${userName}${userCargo ? ` (${userCargo})` : ""}
+Página atual: ${contexto_pagina || "não informada"}
 Propostas ativas: ${propostasAtivas || 0}
-Propostas com pendência: ${propostasPendentes || 0}
-Alertas não resolvidos: ${alertasAtivos?.map((a: any) => `- [${a.nivel}] ${a.titulo}: ${a.descricao || ""}`).join("\n") || "Nenhum"}
-Clientes recentes: ${clientesRecentes?.map((c: any) => `- ${c.nome} (${c.status}, ${c.vidas} vidas)`).join("\n") || "Nenhum"}
-`;
+Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
-    const systemPrompt = `Você é a Miranda, assistente de IA da plataforma Cora para corretoras de planos de saúde.
+    // Agentic loop: call AI, process tool calls, repeat
+    let conversationMessages: any[] = [
+      { role: "system", content: systemPrompt },
+      ...messages,
+    ];
 
-Suas capacidades:
-- Responder dúvidas sobre regras comerciais, carências, coberturas e preços de operadoras
-- Consultar dados de propostas, clientes e alertas do sistema
-- Buscar informações na base de conhecimento indexada
-- Ajudar corretores com tarefas do dia a dia
+    const MAX_ITERATIONS = 5;
+    let iteration = 0;
 
-Regras:
-- Seja concisa mas completa
-- Use negrito (**texto**) para destacar informações importantes
-- Quando usar dados da base de conhecimento, cite a fonte: "De acordo com o documento [título]..."
-- Se não souber, diga claramente e sugira alternativas
-- Mantenha tom profissional mas amigável
-- Responda sempre em português do Brasil
+    while (iteration < MAX_ITERATIONS) {
+      iteration++;
 
-${operationalContext}
-${knowledgeContext}`;
+      const isLastIteration = iteration === MAX_ITERATIONS;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        stream: true,
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "Erro no serviço de IA" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: conversationMessages,
+          tools: isLastIteration ? undefined : tools,
+          stream: false,
+        }),
       });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const t = await response.text();
+        console.error("AI gateway error:", response.status, t);
+        return new Response(JSON.stringify({ error: "Erro no serviço de IA" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await response.json();
+      const choice = data.choices?.[0];
+
+      if (!choice) {
+        return new Response(JSON.stringify({ error: "Resposta vazia da IA" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const message = choice.message;
+
+      // If no tool calls, we have the final answer
+      if (!message.tool_calls?.length || choice.finish_reason === "stop") {
+        // Stream the final response
+        const finalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${lovableKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [...conversationMessages, ...(message.content ? [{ role: "assistant", content: message.content }] : [])].filter(m => m.content || m.tool_calls),
+            stream: true,
+          }),
+        });
+
+        if (!finalResponse.ok) {
+          // Fallback: return non-streamed content
+          return new Response(JSON.stringify({ choices: [{ message: { content: message.content || "Desculpe, não consegui processar sua solicitação." } }] }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(finalResponse.body, {
+          headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+        });
+      }
+
+      // Process tool calls
+      conversationMessages.push(message);
+
+      for (const toolCall of message.tool_calls) {
+        const fnName = toolCall.function.name;
+        let fnArgs: any = {};
+        try {
+          fnArgs = JSON.parse(toolCall.function.arguments || "{}");
+        } catch { /* empty args */ }
+
+        console.log(`Executing tool: ${fnName}`, fnArgs);
+        const result = await executeTool(fnName, fnArgs, supabase);
+
+        conversationMessages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: result,
+        });
+      }
+
+      // Continue loop — next iteration will call AI again with tool results
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    // Should not reach here, but safety fallback
+    return new Response(JSON.stringify({ error: "Limite de iterações atingido" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("miranda-chat error:", e);
