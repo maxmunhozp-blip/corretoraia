@@ -286,6 +286,8 @@ export default function RankingTV() {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [clock, setClock] = useState(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevMetaAchieversRef = useRef<Set<string>>(new Set());
 
   // Fetch data
   useEffect(() => {
