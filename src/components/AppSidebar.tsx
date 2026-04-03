@@ -50,7 +50,7 @@ export function AppSidebar() {
   const initials = profile?.avatar_iniciais ?? displayName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
   const role = profile?.role ?? "vendedor";
-  const showUsuarios = role === "admin_corretora" || role === "master";
+  
 
   // Filter nav items based on role
   const filteredItems = navItems.filter(item => {
