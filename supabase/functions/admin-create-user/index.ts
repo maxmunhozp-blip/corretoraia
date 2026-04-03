@@ -54,6 +54,22 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
 
+    // Handle list-emails action
+    if (body.action === "list-emails") {
+      const userIds: string[] = body.user_ids || [];
+      if (!userIds.length) return respond({ emails: {} });
+
+      const { data: allUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+      const emailMap: Record<string, string> = {};
+      allUsers?.users?.forEach((u: { id: string; email?: string }) => {
+        if (userIds.includes(u.id) && u.email) {
+          emailMap[u.id] = u.email;
+        }
+      });
+
+      return respond({ emails: emailMap });
+    }
+
     // Handle password reset action
     if (body.action === "reset-password") {
       const { user_id, password } = body;
