@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { FileText, Globe, Image, MoreVertical, Eye, Download, Trash2, X } from "lucide-react";
+import { FileText, Globe, Image, MoreVertical, Eye, Download, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useDeleteConhecimento } from "@/hooks/useBaseConhecimento";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { DocumentoPreviewModal } from "./DocumentoPreviewModal";
 
 const iconMap: Record<string, typeof FileText> = {
   pdf: FileText,
@@ -36,6 +36,8 @@ interface DocData {
   arquivo_url: string | null;
   fonte_url: string | null;
   erro_mensagem: string | null;
+  conteudo_extraido?: string | null;
+  descricao?: string | null;
   operadoras?: { nome: string } | null;
 }
 
@@ -72,7 +74,7 @@ export function DocumentoCard({ doc, index }: { doc: DocData; index: number }) {
   };
 
   const handleView = () => {
-    if (previewUrl) setPreviewOpen(true);
+    if (previewUrl || doc.conteudo_extraido) setPreviewOpen(true);
   };
 
   const handleDownload = () => {
@@ -98,7 +100,7 @@ export function DocumentoCard({ doc, index }: { doc: DocData; index: number }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {previewUrl && (
+              {(previewUrl || doc.conteudo_extraido) && (
                 <DropdownMenuItem onClick={handleView}><Eye className="h-4 w-4 mr-2" /> Visualizar</DropdownMenuItem>
               )}
               {doc.arquivo_url && (
@@ -152,46 +154,7 @@ export function DocumentoCard({ doc, index }: { doc: DocData; index: number }) {
         </div>
       </div>
 
-      {/* Preview Modal */}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-            <div className="flex items-center gap-2 min-w-0">
-              <Icon className="h-4 w-4 text-brand shrink-0" />
-              <span className="text-sm font-semibold text-foreground truncate">{doc.titulo}</span>
-              <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground shrink-0">
-                {categoriaLabels[doc.categoria] || doc.categoria}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {doc.arquivo_url && (
-                <button
-                  onClick={() => triggerDownload(doc.arquivo_url!, doc.titulo)}
-                  className="flex items-center gap-1.5 rounded-lg bg-brand text-brand-foreground px-3 py-2 text-xs font-medium hover:bg-brand-hover transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Baixar
-                </button>
-              )}
-              <button
-                onClick={() => setPreviewOpen(false)}
-                className="p-1.5 rounded-md hover:bg-muted transition-colors"
-              >
-                <X className="h-4 w-4 text-muted-foreground" />
-              </button>
-            </div>
-          </div>
-          <div className="flex-1 bg-muted">
-            {previewUrl && (
-              <iframe
-                src={previewUrl}
-                className="w-full h-full border-0"
-                title={`Preview: ${doc.titulo}`}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DocumentoPreviewModal doc={doc} open={previewOpen} onOpenChange={setPreviewOpen} />
     </>
   );
 }
