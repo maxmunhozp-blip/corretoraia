@@ -467,13 +467,6 @@ export default function MirandaPage() {
                         <MirandaMarkdown key={si} content={seg.content} />
                       )
                     )}
-                    {downloads[msg.id] && (
-                      <DownloadCard
-                        filename={downloads[msg.id].filename}
-                        size={downloads[msg.id].size}
-                        url={downloads[msg.id].url}
-                      />
-                    )}
                     {streaming && i === mensagens.length - 1 && <BlinkingCursor />}
                   </div>
                 </div>
