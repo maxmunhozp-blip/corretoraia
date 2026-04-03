@@ -377,6 +377,23 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "pesquisar_perfil_cliente",
+      description: "Pesquisa dados públicos de uma empresa na internet (DuckDuckGo, ReceitaWS, site oficial) e usa IA para criar um perfil comercial personalizado para propostas de plano de saúde. Use quando o usuário pedir para pesquisar um cliente, personalizar proposta, ou quando mencionar CNPJ/empresa para gerar proposta personalizada.",
+      parameters: {
+        type: "object",
+        properties: {
+          nome: { type: "string", description: "Nome da empresa/cliente" },
+          cnpj: { type: "string", description: "CNPJ da empresa (opcional)" },
+          cidade: { type: "string", description: "Cidade da empresa (opcional)" },
+          site: { type: "string", description: "URL do site oficial (opcional)" },
+        },
+        required: ["nome"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "salvar_memoria",
       description: "Salva uma nova memória/aprendizado da Miranda. Use quando o usuário der feedback positivo ou negativo sobre algo (design, tom, layout, etc), quando aprender uma preferência da corretora, ou quando quiser registrar algo para lembrar depois.",
       parameters: {
