@@ -62,11 +62,11 @@ function splitOperatorProduct(dados: DadosProposta) {
   const rawOperadora = (dados.operadora || "").trim();
   const rawProduto = (dados.produto || "").trim();
 
-  if (!rawProduto && rawOperadora.includes("—")) {
+  if (rawOperadora.includes("—") && (!rawProduto || rawOperadora.includes(rawProduto))) {
     const [operadora, produto] = rawOperadora.split("—").map((item) => item.trim());
     return {
       operadora: operadora || rawOperadora,
-      produto: produto || rawProduto,
+      produto: rawProduto || produto || rawProduto,
       headline: rawOperadora,
     };
   }

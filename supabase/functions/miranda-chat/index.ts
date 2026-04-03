@@ -20,13 +20,22 @@ function getLatestUserMessage(messages: { role: string; content: string }[] = []
 
 function getForcedToolChoice(latestUserMessage: string) {
   const text = normalizeText(latestUserMessage);
-  const hasPdfIntent = ["download", "baixar", "pdf", "preview", "visualizar", "botao"].some((term) =>
-    text.includes(term)
-  );
+  const hasPdfIntent =
+    ["download", "baixar", "pdf", "preview", "visualizar", "botao"].some((term) => text.includes(term)) ||
+    [
+      "gere a proposta",
+      "gerar proposta",
+      "crie a proposta",
+      "criar proposta",
+      "me de a proposta",
+      "me dê a proposta",
+      "gere o relatorio",
+      "gere o relatório",
+    ].some((term) => text.includes(term));
 
   if (!hasPdfIntent) return null;
 
-  if (text.includes("relatorio executivo")) {
+  if (text.includes("relatorio executivo") || text.includes("relatorio do dia") || text.includes("relatório") || text.includes("relatorio")) {
     return { type: "function", function: { name: "gerar_relatorio_executivo" } };
   }
 
@@ -41,7 +50,9 @@ function compactObject(value: Record<string, any>) {
 
 function parseCurrency(value?: string) {
   if (!value) return undefined;
-  const normalized = value.replace(/\./g, "").replace(/,/g, ".").replace(/[^\d.]/g, "");
+  const match = value.match(/-?\d{1,3}(?:\.\d{3})*(?:,\d{2})?|-?\d+(?:,\d{2})?/);
+  if (!match) return undefined;
+  const normalized = match[0].replace(/\./g, "").replace(/,/g, ".");
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
@@ -69,24 +80,27 @@ function extractProposalContext(messages: { role: string; content: string }[] = 
     .map((part) => part.trim())
     .filter(Boolean);
 
-  const clienteNome = getLineValue(["Empresa", "Cliente"]) || subtitleParts[0]?.trim();
+  const clienteNome = getLineValue(["Empresa", "Cliente", "Cliente / Empresa"]) || subtitleParts[0]?.trim();
   const vidasText = getLineValue(["Vidas", "Vidas simuladas"]);
   const vidas = vidasText ? Number((vidasText.match(/\d+/) || [])[0]) : undefined;
   const valorEstimado = parseCurrency(
-    getLineValue(["Proposta Bradesco (simulação)", "Proposta Bradesco", "Valor mensal proposto (total)"])
+    getLineValue(["Proposta Bradesco (simulação)", "Proposta Bradesco", "Valor mensal proposto (total)", "Valor proposto"])
   );
   const valorAtual = parseCurrency(getLineValue(["Custo atual (SulAmérica)", "Custo atual", "Valor atual"]));
-  const acomodacao = getLineValue(["Acomodação"]);
-  const odontologico = getLineValue(["Odontológico"]);
-  const compraCarencia = getLineValue(["Compra de carência"]);
+  const acomodacao = getLineValue(["Acomodação", "Acomodacao"]);
+  const odontologico = getLineValue(["Odontológico", "Odontologico"]);
+  const compraCarencia = getLineValue(["Compra de carência", "Compra de carencia"]);
   const produto = getLineValue(["Produto"]) || subtitlePlanParts[1];
   const operadora = getLineValue(["Operadora"]) || subtitlePlanParts[0];
-  const idades = getLineValue(["Idades", "Beneficiários", "Beneficiarios"]);
-  const economia = parseCurrency(getLineValue(["Economia estimada", "Economia mensal"]));
-  const percentualEconomiaText = getLineValue(["Percentual de economia", "Redução percentual", "% economia"]);
-  const percentualEconomia = percentualEconomiaText
-    ? Number((percentualEconomiaText.replace(",", ".").match(/-?\d+(?:\.\d+)?/) || [])[0])
-    : undefined;
+  const idades =
+    getLineValue(["Idades", "Beneficiários", "Beneficiarios"]) ||
+    vidasText?.match(/idades?\s*:\s*([^)]+)/i)?.[1]?.trim();
+  const economiaSource = getLineValue(["Economia estimada", "Economia mensal"]);
+  const economia = parseCurrency(economiaSource);
+  const percentualFromEconomia = economiaSource?.match(/~?\s*(-?\d+(?:[.,]\d+)?)\s*%/);
+  const percentualEconomiaText = getLineValue(["Percentual de economia", "Redução percentual", "% economia"]) || percentualFromEconomia?.[1];
+  const percentualMatch = percentualEconomiaText?.replace(",", ".").match(/-?\d+(?:\.\d+)?/);
+  const percentualEconomia = percentualMatch ? Number(percentualMatch[0]) : undefined;
 
   const observacoes = [
     compraCarencia,
@@ -113,6 +127,83 @@ function extractProposalContext(messages: { role: string; content: string }[] = 
     status: "simulada",
     created_at: new Date().toISOString(),
   });
+}
+
+function streamTextAsSse(content: string) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const chunkSize = 8;
+      for (let i = 0; i < content.length; i += chunkSize) {
+        const chunk = content.slice(i, i + chunkSize);
+        const sseChunk = `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: chunk } }] })}\n\n`;
+        controller.enqueue(encoder.encode(sseChunk));
+        await new Promise((resolve) => setTimeout(resolve, 15));
+      }
+
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+}
+
+function formatCurrencyForMessage(value: unknown) {
+  if (typeof value !== "number" || Number.isNaN(value)) return null;
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function buildPdfAssistantMessage(payload: Record<string, any>) {
+  if (payload.__pdf_type === "relatorio_executivo") {
+    const bullets = [
+      payload.periodo ? `- **Período:** ${payload.periodo}` : null,
+      payload.propostas_total !== undefined ? `- **Propostas analisadas:** ${payload.propostas_total}` : null,
+      payload.propostas_aprovadas !== undefined ? `- **Aprovadas:** ${payload.propostas_aprovadas}` : null,
+      payload.taxa_conversao !== undefined ? `- **Conversão:** ${payload.taxa_conversao}%` : null,
+      formatCurrencyForMessage(payload.valor_total_aprovado)
+        ? `- **Valor total aprovado:** ${formatCurrencyForMessage(payload.valor_total_aprovado)}`
+        : null,
+    ].filter(Boolean).join("\n");
+
+    return [
+      "Preparando o PDF do relatório executivo para visualização e download.",
+      "",
+      "```generate_pdf",
+      JSON.stringify(payload),
+      "```",
+      "",
+      "Resumo dos dados principais",
+      bullets,
+    ].filter(Boolean).join("\n");
+  }
+
+  const operatorProduct = payload.operadora && payload.produto && String(payload.operadora).includes(String(payload.produto))
+    ? String(payload.operadora)
+    : [payload.operadora, payload.produto].filter(Boolean).join(" — ");
+
+  const bullets = [
+    payload.cliente_nome || payload.empresa ? `- **Cliente / Empresa:** ${payload.empresa || payload.cliente_nome}` : null,
+    operatorProduct ? `- **Operadora / Produto:** ${operatorProduct}` : null,
+    payload.vidas !== undefined ? `- **Vidas:** ${payload.vidas}${payload.idades ? ` (idades: ${payload.idades})` : ""}` : null,
+    formatCurrencyForMessage(payload.valor_atual) ? `- **Valor atual:** ${formatCurrencyForMessage(payload.valor_atual)}` : null,
+    formatCurrencyForMessage(payload.valor_estimado) ? `- **Valor proposto:** ${formatCurrencyForMessage(payload.valor_estimado)}` : null,
+    formatCurrencyForMessage(payload.economia_mensal) ? `- **Economia mensal:** ${formatCurrencyForMessage(payload.economia_mensal)}` : null,
+    payload.status ? `- **Status:** ${payload.status}` : null,
+  ].filter(Boolean).join("\n");
+
+  return [
+    "Preparando o PDF da proposta para visualização e download.",
+    "",
+    "```generate_pdf",
+    JSON.stringify(payload),
+    "```",
+    "",
+    "Resumo dos dados principais",
+    bullets,
+  ].filter(Boolean).join("\n");
 }
 
 const tools = [
@@ -907,6 +998,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
     // Step 2: If tool calls exist, execute them and collect results
     let toolResultsContext = "";
+    let pdfPayload: Record<string, any> | null = null;
 
     if (toolMessage?.tool_calls?.length) {
       const results: string[] = [];
@@ -922,10 +1014,23 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
         const result = await executeTool(fnName, fnArgs, supabase, messages);
         console.log(`Tool result length: ${result.length}`);
         results.push(`[Resultado de ${fnName}]: ${result}`);
+
+        try {
+          const parsedResult = JSON.parse(result);
+          if (parsedResult?.__pdf_type) {
+            pdfPayload = parsedResult;
+          }
+        } catch {
+          // ignore non-json tool outputs
+        }
       }
 
       toolResultsContext = "\n\n--- DADOS CONSULTADOS ---\n" + results.join("\n\n");
       console.log(`Tool results context length: ${toolResultsContext.length}`);
+    }
+
+    if (pdfPayload) {
+      return streamTextAsSse(buildPdfAssistantMessage(pdfPayload));
     }
 
     // Step 3: Stream final response with tool results injected into context
@@ -938,23 +1043,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
     if (!toolResultsContext && !toolMessage?.tool_calls?.length && toolMessage?.content) {
       // Direct answer — stream it as SSE
       const content = toolMessage.content;
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        async start(controller) {
-          const chunkSize = 8;
-          for (let i = 0; i < content.length; i += chunkSize) {
-            const chunk = content.slice(i, i + chunkSize);
-            const sseChunk = `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: chunk } }] })}\n\n`;
-            controller.enqueue(encoder.encode(sseChunk));
-            await new Promise(r => setTimeout(r, 15));
-          }
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          controller.close();
-        },
-      });
-      return new Response(stream, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-      });
+      return streamTextAsSse(content);
     }
 
     // Stream the final AI response with tool data in context
@@ -973,11 +1062,7 @@ Alertas não resolvidos: ${alertasNaoResolvidos || 0}`;
 
     if (!finalResponse.ok) {
       const fallback = toolMessage?.content || "Desculpe, não consegui processar sua solicitação.";
-      const encoder = new TextEncoder();
-      const sseData = `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: fallback } }] })}\n\ndata: [DONE]\n\n`;
-      return new Response(encoder.encode(sseData), {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-      });
+      return streamTextAsSse(fallback);
     }
 
     return new Response(finalResponse.body, {
