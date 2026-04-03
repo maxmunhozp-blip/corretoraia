@@ -189,7 +189,7 @@ export default function MirandaPage() {
   const [streaming, setStreaming] = useState(false);
   const [currentAction, setCurrentAction] = useState<string | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [hoveredConversa, setHoveredConversa] = useState<string | null>(null);
+  
   const [editingConversa, setEditingConversa] = useState<string | null>(null);
   const [editingTitulo, setEditingTitulo] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
