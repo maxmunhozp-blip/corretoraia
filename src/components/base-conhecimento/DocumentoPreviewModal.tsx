@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { FileText, Globe, Image as ImageIcon, Download, X, ExternalLink, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
+import { FileText, Globe, Image as ImageIcon, Download, X, ExternalLink, Mail, Send, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 const categoriaLabels: Record<string, string> = {
   regras_comerciais: "Regras Comerciais",
@@ -71,6 +74,10 @@ interface Props {
 }
 
 export function DocumentoPreviewModal({ doc, open, onOpenChange }: Props) {
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+
   const previewUrl = doc.arquivo_url || doc.fonte_url;
   const pdfUrl = isPdf(doc.arquivo_url) ? doc.arquivo_url : null;
   const imgUrl = isImage(doc.arquivo_url) ? doc.arquivo_url : null;
@@ -113,14 +120,76 @@ export function DocumentoPreviewModal({ doc, open, onOpenChange }: Props) {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {previewUrl && !webUrl && (
-              <Button
-                size="sm"
-                onClick={() => triggerDownload(previewUrl!, doc.titulo)}
-                className="bg-brand text-brand-foreground hover:bg-brand-hover h-8 text-xs"
-              >
-                <Download className="h-3.5 w-3.5 mr-1.5" />
-                Baixar
-              </Button>
+              <>
+                <Popover open={emailOpen} onOpenChange={(v) => { setEmailOpen(v); if (!v) { setEmailSent(false); setEmailTo(""); } }}>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-8 text-xs border-brand text-brand hover:bg-brand-light">
+                      <Mail className="h-3.5 w-3.5 mr-1.5" />
+                      Enviar por email
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-3" align="end">
+                    {emailSent ? (
+                      <div className="flex flex-col items-center gap-2 py-2 animate-fade-in">
+                        <CheckCircle2 className="h-8 w-8 text-green-500" />
+                        <p className="text-sm font-medium text-foreground">Email preparado!</p>
+                        <p className="text-[11px] text-muted-foreground text-center">O cliente de email foi aberto com o relatório anexado.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs font-semibold text-foreground mb-1">Enviar relatório</p>
+                          <p className="text-[10px] text-muted-foreground">Informe o email do destinatário</p>
+                        </div>
+                        <Input
+                          placeholder="email@exemplo.com"
+                          type="email"
+                          value={emailTo}
+                          onChange={(e) => setEmailTo(e.target.value)}
+                          className="h-8 text-xs"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && emailTo.trim()) {
+                              const subject = encodeURIComponent(`Relatório: ${doc.titulo}`);
+                              const body = encodeURIComponent(
+                                `Olá,\n\nSegue o relatório "${doc.titulo}" para sua análise.\n\nAcesse o documento: ${previewUrl}\n\nAtenciosamente.`
+                              );
+                              window.open(`mailto:${emailTo.trim()}?subject=${subject}&body=${body}`, "_self");
+                              setEmailSent(true);
+                              toast.success("Cliente de email aberto");
+                            }
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          className="w-full h-8 text-xs bg-brand text-brand-foreground hover:bg-brand-hover"
+                          disabled={!emailTo.trim() || !emailTo.includes("@")}
+                          onClick={() => {
+                            const subject = encodeURIComponent(`Relatório: ${doc.titulo}`);
+                            const body = encodeURIComponent(
+                              `Olá,\n\nSegue o relatório "${doc.titulo}" para sua análise.\n\nAcesse o documento: ${previewUrl}\n\nAtenciosamente.`
+                            );
+                            window.open(`mailto:${emailTo.trim()}?subject=${subject}&body=${body}`, "_self");
+                            setEmailSent(true);
+                            toast.success("Cliente de email aberto");
+                          }}
+                        >
+                          <Send className="h-3.5 w-3.5 mr-1.5" />
+                          Enviar
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+                <Button
+                  size="sm"
+                  onClick={() => triggerDownload(previewUrl!, doc.titulo)}
+                  className="bg-brand text-brand-foreground hover:bg-brand-hover h-8 text-xs"
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Baixar
+                </Button>
+              </>
             )}
             {webUrl && (
               <Button
