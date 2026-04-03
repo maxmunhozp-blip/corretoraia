@@ -787,6 +787,17 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
           data = response.data;
         }
 
+        const corretoraInfo = corretoraData ? {
+          nome: corretoraData.nome,
+          telefone: corretoraData.telefone,
+          email: corretoraData.email,
+          site: corretoraData.site,
+          cidade: corretoraData.cidade,
+          estado: corretoraData.estado,
+          cor_primaria: corretoraData.cor_primaria,
+          cor_secundaria: corretoraData.cor_secundaria,
+        } : undefined;
+
         if (data?.length) {
           const p = data[0];
           const propostaData = {
@@ -801,6 +812,11 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
             responsavel: p.profiles?.nome,
             observacoes: p.observacoes,
             created_at: p.created_at,
+            corretora_nome: corretoraData?.nome,
+            corretora_cnpj: corretoraData?.cnpj,
+            corretora_telefone: corretoraData?.telefone,
+            corretora_email: corretoraData?.email,
+            corretora: corretoraInfo,
             ...explicitArgs,
           };
           return JSON.stringify(propostaData);
@@ -814,6 +830,8 @@ async function executeTool(name: string, args: any, supabase: any, messages: { r
           empresa: explicitArgs.empresa || conversationProposal.empresa || explicitArgs.cliente_nome || conversationProposal.cliente_nome,
           status: explicitArgs.status || conversationProposal.status || "simulada",
           created_at: explicitArgs.created_at || conversationProposal.created_at || new Date().toISOString(),
+          corretora_nome: corretoraData?.nome,
+          corretora: corretoraInfo,
         };
 
         if (!contextualProposal.cliente_nome) {
