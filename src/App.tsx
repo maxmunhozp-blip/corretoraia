@@ -15,6 +15,7 @@ import Ranking from "./pages/Ranking";
 import Alertas from "./pages/Alertas";
 import BaseConhecimento from "./pages/BaseConhecimento";
 import Acessos from "./pages/Acessos";
+import Desenvolvimento from "./pages/Desenvolvimento";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/alertas" element={<Alertas />} />
               <Route path="/base-conhecimento" element={<BaseConhecimento />} />
               <Route path="/acessos" element={<Acessos />} />
+              <Route path="/desenvolvimento" element={<Desenvolvimento />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

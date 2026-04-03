@@ -7,6 +7,7 @@ import {
   Bell,
   BookOpen,
   Lock,
+  Code2,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -21,6 +22,7 @@ const navItems = [
   { title: "Alertas", url: "/alertas", icon: Bell },
   { title: "Base de Conhecimento", url: "/base-conhecimento", icon: BookOpen },
   { title: "Acessos", url: "/acessos", icon: Lock },
+  { title: "Desenvolvimento", url: "/desenvolvimento", icon: Code2 },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
