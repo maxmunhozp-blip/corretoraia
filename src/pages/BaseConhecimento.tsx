@@ -83,6 +83,7 @@ export default function BaseConhecimento() {
       )}
 
       <UploadDocumentoModal open={uploadOpen} onOpenChange={setUploadOpen} />
+      <UploadPastaModal open={pastaOpen} onOpenChange={setPastaOpen} />
       <BuscarInternetModal open={searchOpen} onOpenChange={setSearchOpen} />
     </PageWrapper>
   );
