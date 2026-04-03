@@ -41,6 +41,7 @@ export default function UsuariosCorretora() {
   const { profile, user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const [form, setForm] = useState({
     nome: "",
     email: "",
