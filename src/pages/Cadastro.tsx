@@ -73,6 +73,7 @@ export default function Cadastro() {
 
   const [form, setForm] = useState({
     nomeCorretora: "",
+    cnpj: "",
     nome: "",
     email: "",
     senha: "",
@@ -91,10 +92,45 @@ export default function Cadastro() {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   };
 
+  const formatCNPJ = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 14);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+    if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+  };
+
+  const validarCNPJ = (cnpj: string): boolean => {
+    const digits = cnpj.replace(/\D/g, "");
+    if (digits.length !== 14) return false;
+    if (/^(\d)\1{13}$/.test(digits)) return false;
+
+    const calc = (slice: string, weights: number[]) =>
+      weights.reduce((sum, w, i) => sum + parseInt(slice[i]) * w, 0);
+
+    const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+    let rest = calc(digits, w1) % 11;
+    const d1 = rest < 2 ? 0 : 11 - rest;
+    if (parseInt(digits[12]) !== d1) return false;
+
+    rest = calc(digits, w2) % 11;
+    const d2 = rest < 2 ? 0 : 11 - rest;
+    if (parseInt(digits[13]) !== d2) return false;
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.email || !form.senha || !form.nome || !form.nomeCorretora) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+    if (form.cnpj && !validarCNPJ(form.cnpj)) {
+      toast.error("CNPJ inválido. Verifique os dígitos.");
       return;
     }
     const whatsDigits = form.telefone.replace(/\D/g, "");
@@ -117,6 +153,7 @@ export default function Cadastro() {
           data: {
             nome: form.nome,
             nome_corretora: form.nomeCorretora,
+            cnpj: form.cnpj ? form.cnpj.replace(/\D/g, "") : undefined,
             telefone: form.telefone,
             plano: selectedPlano,
           },
@@ -246,6 +283,16 @@ export default function Cadastro() {
                     value={form.nomeCorretora}
                     onChange={(e) => setForm({ ...form, nomeCorretora: e.target.value })}
                     required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cnpj">CNPJ</Label>
+                  <Input
+                    id="cnpj"
+                    placeholder="00.000.000/0000-00"
+                    value={form.cnpj}
+                    onChange={(e) => setForm({ ...form, cnpj: formatCNPJ(e.target.value) })}
                   />
                 </div>
 
