@@ -94,3 +94,8 @@
   0%, 100% { box-shadow: 0 0 0 0 hsl(1 30% 45% / 0.4); }
   50% { box-shadow: 0 0 0 10px hsl(1 30% 45% / 0); }
 }
+
+@keyframes alertPulse {
+  0%, 100% { border-left-color: inherit; }
+  50% { border-left-color: hsl(1 30% 55%); }
+}
