@@ -46,6 +46,16 @@ function getForcedToolChoice(latestUserMessage: string) {
     "gere uma proposta para",
     "criar proposta para",
     "gerar proposta para",
+    "pode criar",
+    "confirmo",
+    "pode montar",
+    "faz a proposta",
+    "manda a proposta",
+    "gera a proposta",
+    "cria a proposta",
+    "crie e",
+    "gere e",
+    "monta a proposta",
   ].some((term) => text.includes(term));
 
   if (hasPropostaInterativaIntent) {
@@ -1279,6 +1289,17 @@ CRIAÇÃO DE PROPOSTA INTERATIVA:
 - Passe TODOS os dados disponíveis: cliente_nome, plano_atual, alternativas com valores reais, beneficiários.
 - NUNCA descreva o link em texto — o frontend renderiza automaticamente um card com o link e botões.
 - SEMPRE que tiver dados suficientes (nome do cliente + pelo menos uma alternativa), use esta tool em vez de apenas descrever o que faria.
+- Se o usuário disser "crie", "confirmo", "pode criar", "faz a proposta" ou qualquer variação de confirmação, CHAME a tool imediatamente com os dados disponíveis no contexto — NÃO PEÇA MAIS INFORMAÇÕES.
+
+REGRA CRÍTICA — LINK SEMPRE VISÍVEL:
+- Toda vez que uma proposta interativa for criada OU já existir no contexto da conversa (mencionada por slug ou /p/SLUG), você DEVE emitir o bloco abaixo ao FINAL da sua resposta, mesmo que já tenha descrito o que fez:
+
+\`\`\`proposta_criada
+{"slug":"SLUG_AQUI","link":"/p/SLUG_AQUI","cliente_nome":"NOME_DO_CLIENTE"}
+\`\`\`
+
+- NUNCA mencione o link apenas em texto corrido. Sempre use o bloco acima.
+- Isso é obrigatório — sem esse bloco, o usuário não vê o botão de acesso à proposta.
 
 PESQUISA DE PERFIL DE CLIENTE:
 Quando os dados retornados de uma tool tiverem o campo "__pesquisa_cliente", você DEVE incluir o JSON em um bloco especial:
